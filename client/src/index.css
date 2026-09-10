@@ -123,6 +123,23 @@ h1 em, h2 em { font-style: normal; color: #6e8c45; }
 .trust-grid strong { font-size: 11px; }
 .trust-grid small { font-size: 9px; color: #728071; }
 
+.featured-categories { padding: 70px 0 0; background: #f3f1e8; }
+.category-heading-row { display: flex; align-items: end; justify-content: space-between; gap: 40px; }
+.category-heading-row h2 { font-size: clamp(29px, 3.7vw, 45px); letter-spacing: -.07em; line-height: 1.2; margin: 16px 0 0; }
+.category-heading-row > p { color: #738076; max-width: 260px; font-size: 12px; line-height: 1.95; margin: 0 0 5px; }
+.featured-category-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; margin-top: 29px; }
+.featured-category-card { min-height: 142px; position: relative; overflow: hidden; border: 1px solid #d4ddc8; background: #e7eddb; color: #183c2e; text-align: right; padding: 19px; display: flex; flex-direction: column; justify-content: space-between; transition: transform .2s ease, background .2s ease, border-color .2s ease; }
+.featured-category-card:nth-child(2) { background: #eef0d6; }
+.featured-category-card:nth-child(3) { background: #dfe9c9; }
+.featured-category-card:nth-child(4) { background: #f0eddc; }
+.featured-category-card:hover { transform: translateY(-4px); background: #c9f23d; border-color: #183c2e; }
+.category-emoji { position: absolute; left: 13px; top: 9px; font-size: 44px; filter: drop-shadow(0 8px 7px rgba(24,60,46,.12)); transition: transform .2s ease; }
+.featured-category-card:hover .category-emoji { transform: rotate(-8deg) scale(1.08); }
+.category-card-copy { display: flex; flex-direction: column; gap: 3px; position: relative; z-index: 1; }
+.category-card-copy strong { font-size: 17px; letter-spacing: -.05em; }
+.category-card-copy small { color: #70816c; font-size: 9px; }
+.category-card-arrow { margin-top: 13px; color: #718b50; }
+
 .products-section { padding: 104px 0 117px; }
 .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 40px; }
 .section-heading h2, .story-copy h2 { font-size: clamp(32px, 4.3vw, 52px); letter-spacing: -.07em; line-height: 1.22; margin: 19px 0 0; }
@@ -243,6 +260,7 @@ h1 em, h2 em { font-style: normal; color: #6e8c45; }
   .hero-section { padding: 45px 0 63px; }.hero-grid { display: flex; flex-direction: column; gap: 40px; align-items: stretch; }.hero-copy { order: 1; }.hero-visual { order: 2; min-height: 350px; padding: 0 0 37px; }.hero-image-wrap { height: 310px; box-shadow: 11px 11px 0 #dfe8c6; }.round-stamp { left: 2px; top: -17px; width: 80px; height: 80px; }.round-stamp span { font-size: 6px; }.round-stamp strong { font-size: 12px; }.season-card { bottom: 0; right: 6px; width: 180px; padding: 16px; }.season-card-top { margin-bottom: 12px; }.season-card strong { font-size: 16px; }
   .hero-copy h1 { font-size: 47px; }.hero-copy h1.hero-title { font-size: 34px; line-height: 1.45; }.hero-lead { font-size: 13px; }.hero-actions { gap: 15px; }.hero-note { margin-top: 35px; }
   .trust-grid { gap: 0; }.trust-grid > div { padding: 16px 7px 16px 0; }.trust-grid strong { font-size: 10px; }.trust-grid small { font-size: 8px; }
+  .featured-categories { padding-top: 55px; }.category-heading-row { display: block; }.category-heading-row > p { margin-top: 15px; }.featured-category-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 22px; }.featured-category-card { min-height: 126px; padding: 15px; }.category-card-copy strong { font-size: 15px; }.category-emoji { font-size: 36px; }
   .products-section { padding: 75px 0 82px; }.section-heading { display: block; }.section-heading > p { margin-top: 19px; }.category-tabs { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; margin-top: 27px; }.category-tabs button { white-space: nowrap; }.product-grid { grid-template-columns: repeat(2, 1fr); gap: 25px 13px; }.product-art { height: 200px; }.product-info h3 { font-size: 11px; }.product-info p { font-size: 9px; }.product-arrow { width: 23px; height: 23px; }.product-bottom strong, .product-bottom button { font-size: 9px; }.product-bottom button { gap: 2px; }
   .story-section { padding: 76px 0 84px; }.story-grid { display: flex; flex-direction: column; gap: 52px; }.story-visual { width: calc(100% - 14px); min-height: 310px; padding: 0 0 20px 15px; }.story-photo { height: 290px; box-shadow: -10px 10px 0 #c9f23d; }.story-label { min-width: 180px; padding: 12px; }.story-copy p { font-size: 12px; }.manifesto-section { padding: 75px 0; }.manifesto-inner p { font-size: 27px; }
   .newsletter-section { padding: 55px 0; }.newsletter-inner { display: block; }.newsletter-inner form { min-width: 0; margin-top: 32px; }.newsletter-inner h2 { font-size: 29px; }

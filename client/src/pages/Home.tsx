@@ -35,7 +35,7 @@ const products: Product[] = [
     name: "زيت زيتون بكر ممتاز",
     subtitle: "معصور على البارد من زيتون شمال الأردن",
     price: "ابتداءً من 12.00 د.أ",
-    category: "زيوت وزيتون",
+    category: "زيت الزيتون",
     tag: "حصاد الموسم",
     image: "/manus-storage/olive-oil_368c793e.jpg",
     art: "olive-art",
@@ -46,7 +46,7 @@ const products: Product[] = [
     name: "عسل جبلي خام",
     subtitle: "من مراعي حوران، بلا إضافات",
     price: "ابتداءً من 8.50 د.أ",
-    category: "مؤونة البيت",
+    category: "العسل",
     tag: "الأكثر طلباً",
     image: "/manus-storage/hero-table_f2893f80.jpg",
     art: "honey-art",
@@ -57,7 +57,7 @@ const products: Product[] = [
     name: "زعتر بلدي مع السمسم",
     subtitle: "خلطة دارنا اليومية، محمصة بعناية",
     price: "ابتداءً من 3.50 د.أ",
-    category: "مؤونة البيت",
+    category: "الزعتر",
     tag: "خلطة دارنا",
     art: "thyme-art",
     emoji: "🌿",
@@ -76,7 +76,7 @@ const products: Product[] = [
     name: "لبنة بالزعتر",
     subtitle: "لبن بلدي كثيف مع رشة من زعترنا",
     price: "ابتداءً من 3.25 د.أ",
-    category: "ألبان وأجبان",
+    category: "الألبان",
     tag: "طازج",
     art: "labneh-art",
     emoji: "🥣",
@@ -92,7 +92,13 @@ const products: Product[] = [
   },
 ];
 
-const categories = ["التشكيلة كاملة", "زيوت وزيتون", "مؤونة البيت", "ألبان وأجبان", "موسمنا"];
+const categories = ["التشكيلة كاملة", "زيت الزيتون", "العسل", "الزعتر", "الألبان", "مؤونة البيت", "موسمنا"];
+const featuredCategories = [
+  { name: "زيت الزيتون", note: "معصور على البارد", emoji: "🫒", filter: "زيت الزيتون" },
+  { name: "العسل", note: "خام من مراعي حوران", emoji: "🍯", filter: "العسل" },
+  { name: "الزعتر", note: "خلطة دارنا اليومية", emoji: "🌿", filter: "الزعتر" },
+  { name: "الألبان", note: "طازجة من مزارعنا", emoji: "🥣", filter: "الألبان" },
+];
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("التشكيلة كاملة");
@@ -203,6 +209,22 @@ export default function Home() {
             <div><span className="trust-icon"><Truck size={18} /></span><span><strong>من المزرعة إلى بابك</strong><small>تغليف يليق بالمنتج</small></span></div>
             <div><span className="trust-icon"><Heart size={18} /></span><span><strong>طعم يُشبه البيت</strong><small>وصفات وذكريات ريفية</small></span></div>
             <div><span className="trust-icon"><Clock3 size={18} /></span><span><strong>موسم بموسم</strong><small>نحترم إيقاع الأرض</small></span></div>
+          </div>
+        </section>
+
+        <section className="featured-categories" aria-labelledby="category-heading">
+          <div className="container">
+            <div className="category-heading-row">
+              <div><div className="eyebrow"><span></span> تسوّق حسب النوع</div><h2 id="category-heading">خيراتٌ تعرفها.</h2></div>
+              <p>ابدأ من الصنف الذي تحبه، وستجد ما يشبهه على رفوفنا.</p>
+            </div>
+            <div className="featured-category-grid">
+              {featuredCategories.map((category) => <button key={category.name} className="featured-category-card" onClick={() => { setActiveCategory(category.filter); document.getElementById("products")?.scrollIntoView({ behavior: "smooth" }); }}>
+                <span className="category-emoji" aria-hidden="true">{category.emoji}</span>
+                <span className="category-card-copy"><strong>{category.name}</strong><small>{category.note}</small></span>
+                <ArrowLeft className="category-card-arrow" size={17} />
+              </button>)}
+            </div>
           </div>
         </section>
 

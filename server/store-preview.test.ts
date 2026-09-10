@@ -13,6 +13,11 @@ describe("Organic Holy Land storefront preview", () => {
     expect(homeSource).toContain("عضوي الأرض المقدسة");
     expect(homeSource).toContain("HOLY LAND ORGANIC");
     expect(homeSource).toContain("Organic Holy Land");
+    expect(homeSource).toContain("زيت الزيتون");
+    expect(homeSource).toContain("العسل");
+    expect(homeSource).toContain("الزعتر");
+    expect(homeSource).toContain("الألبان");
+    expect(homeSource).toContain("featuredCategories");
     expect(homeSource).toContain("مؤونة تُفرح");
     expect(homeSource).toContain("قصتنا");
     expect(homeSource).toContain("setCartOpen");
