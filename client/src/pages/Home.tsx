@@ -135,11 +135,11 @@ export default function Home() {
           <button className="icon-button mobile-menu-button" aria-label="فتح القائمة" onClick={() => setMenuOpen((open) => !open)}>
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <a className="brand-mark" href="#top" aria-label="Organic Holy Land">
-            <span className="brand-symbol">OH</span>
+          <a className="brand-mark" href="#top" aria-label="عضوي الأرض المقدسة — HOLY LAND ORGANIC">
+            <span className="brand-symbol acorn-symbol" aria-hidden="true"><span className="acorn-cap"></span><span className="acorn-body">•</span><span className="acorn-leaf">⌁</span></span>
             <span className="brand-copy">
-              <strong>Organic Holy Land</strong>
-              <small>أرضنا · خيرنا</small>
+              <strong>عضوي الأرض المقدسة</strong>
+              <small>HOLY LAND ORGANIC</small>
             </span>
           </a>
           <nav className={`main-nav ${menuOpen ? "is-open" : ""}`} aria-label="التنقل الرئيسي">
@@ -260,7 +260,7 @@ export default function Home() {
 
       <footer className="site-footer">
         <div className="container footer-grid">
-          <div className="footer-brand"><a className="brand-mark" href="#top"><span className="brand-symbol">OH</span><span className="brand-copy"><strong>Organic Holy Land</strong><small>أرضنا · خيرنا</small></span></a><p>من الأرض المقدسة وروابي حوران<br />إلى بيتك، بمحبة.</p></div>
+          <div className="footer-brand"><a className="brand-mark" href="#top" aria-label="عضوي الأرض المقدسة — HOLY LAND ORGANIC"><span className="brand-symbol acorn-symbol" aria-hidden="true"><span className="acorn-cap"></span><span className="acorn-body">•</span><span className="acorn-leaf">⌁</span></span><span className="brand-copy"><strong>عضوي الأرض المقدسة</strong><small>HOLY LAND ORGANIC</small></span></a><p>من الأرض المقدسة وروابي حوران<br />إلى بيتك، بمحبة.</p></div>
           <div><strong className="footer-title">استكشف</strong><a href="#products">المنتجات</a><a href="#story">قصتنا</a><a href="#season">موسمنا</a></div>
           <div><strong className="footer-title">نحتاج مساعدتك؟</strong><a href="#contact">تواصل معنا</a><a href="#contact">الشحن والتوصيل</a><a href="#contact">الأسئلة الشائعة</a></div>
           <div className="footer-social"><strong className="footer-title">تابع الحكاية</strong><div className="social-row"><button aria-label="Instagram">ig</button><button aria-label="Facebook">f</button><button aria-label="WhatsApp">wa</button></div><small>© 2024 Organic Holy Land</small></div>

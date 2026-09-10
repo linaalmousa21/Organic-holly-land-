@@ -59,9 +59,13 @@ a { color: inherit; text-decoration: none; }
 .header-inner { position: relative; min-height: 78px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
 .brand-mark { display: inline-flex; align-items: center; gap: 11px; min-width: 207px; }
 .brand-symbol { width: 39px; height: 39px; border-radius: 50%; display: grid; place-items: center; color: #183c2e; background: var(--accent); font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: -.08em; border: 1px solid #183c2e; }
+.acorn-symbol { position: relative; overflow: hidden; border-radius: 47% 47% 50% 50%; transform: rotate(-9deg); }
+.acorn-cap { position: absolute; width: 25px; height: 11px; top: 7px; left: 7px; border-radius: 60% 60% 35% 35%; background: #183c2e; box-shadow: 0 3px 0 rgba(201,242,61,.55); }
+.acorn-body { position: absolute; top: 13px; left: 10px; width: 19px; height: 20px; border-radius: 48% 48% 54% 54%; background: #e8f4b6; color: #183c2e; font-size: 19px; line-height: 12px; text-align: center; }
+.acorn-leaf { position: absolute; right: 2px; top: 3px; font-size: 17px; font-weight: 800; transform: rotate(-35deg); color: #183c2e; }
 .brand-copy { display: flex; flex-direction: column; gap: 0; line-height: 1.2; }
-.brand-copy strong { font: 700 13px 'DM Sans', sans-serif; letter-spacing: -.02em; }
-.brand-copy small { font-size: 10px; color: #788579; margin-top: 2px; }
+.brand-copy strong { font: 700 13px 'Cairo', sans-serif; letter-spacing: -.04em; }
+.brand-copy small { font: 700 9px 'DM Sans', sans-serif; letter-spacing: .08em; color: #788579; margin-top: 2px; direction: ltr; text-align: right; }
 .main-nav { display: flex; align-items: center; gap: 33px; font-size: 12px; color: #4e6054; }
 .main-nav a { transition: color .18s ease; }
 .main-nav a:hover { color: #183c2e; }
