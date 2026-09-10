@@ -1,0 +1,12 @@
+[build]
+  command = "pnpm install --frozen-lockfile && pnpm build"
+  publish = "dist/public"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NPM_FLAGS = "--version"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
