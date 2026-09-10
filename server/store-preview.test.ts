@@ -18,6 +18,9 @@ describe("Organic Holy Land storefront preview", () => {
     expect(homeSource).toContain("الزعتر");
     expect(homeSource).toContain("الألبان");
     expect(homeSource).toContain("featuredCategories");
+    expect(homeSource).toContain("12.00 د.أ · 500 مل");
+    expect(homeSource).toContain("8.50 د.أ · 250 غ");
+    expect(homeSource).toContain("5.00 د.أ · 330 مل");
     expect(homeSource).toContain("مؤونة تُفرح");
     expect(homeSource).toContain("قصتنا");
     expect(homeSource).toContain("setCartOpen");
@@ -35,5 +38,8 @@ describe("Organic Holy Land storefront preview", () => {
     expect(homeSource).toContain("/manus-storage/hero-table_f2893f80.jpg");
     expect(homeSource).toContain("/manus-storage/grape-leaves_a282bafc.jpg");
     expect(homeSource).toContain("/manus-storage/olive-oil_368c793e.jpg");
+    expect(homeSource).toContain("/manus-storage/honey-preview_5a7b9acf.jpg");
+    expect(homeSource).toContain("/manus-storage/dish-preview_8a82762c.jpg");
+    expect(homeSource).toContain("/manus-storage/bread-preview_70405922.jpg");
   });
 });
