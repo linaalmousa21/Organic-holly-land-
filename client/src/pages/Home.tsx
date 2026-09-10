@@ -173,7 +173,7 @@ export default function Home() {
           <div className="container hero-grid">
             <div className="hero-copy">
               <div className="eyebrow"><span></span> من الحقل إلى مائدتك</div>
-              <h1>طعمُ البلد،<br /><em>محفوظٌ بعناية.</em></h1>
+              <h1 className="hero-title"><em>Organic Holy Land</em></h1>
               <p className="hero-lead">منتجات ريفية وعضوية من الأرض المقدسة وروابي حوران. نختارها من مواسمنا ونوصلها إلى بيتك كما تحبها.</p>
               <div className="hero-actions">
                 <a className="primary-button" href="#products">اكتشف التشكيلة <ArrowLeft size={17} /></a>

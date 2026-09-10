@@ -88,6 +88,7 @@ a { color: inherit; text-decoration: none; }
 .eyebrow { color: #6f7d6f; font-size: 11px; font-weight: 700; letter-spacing: .08em; display: inline-flex; align-items: center; gap: 9px; }
 .eyebrow > span { width: 19px; height: 2px; background: var(--accent); display: inline-block; }
 .hero-copy h1 { font-size: clamp(39px, 5.1vw, 70px); line-height: 1.18; letter-spacing: -.07em; margin: 22px 0 19px; font-weight: 800; }
+.hero-copy h1.hero-title { font-size: clamp(31px, 4.35vw, 59px); line-height: 1.3; }
 h1 em, h2 em { font-style: normal; color: #6e8c45; }
 .hero-lead { color: #68766c; font-size: 15px; line-height: 2.05; max-width: 415px; margin: 0 0 29px; }
 .hero-actions { display: flex; align-items: center; gap: 25px; }
@@ -240,7 +241,7 @@ h1 em, h2 em { font-style: normal; color: #6e8c45; }
   .main-nav { display: none; position: absolute; top: 68px; right: 0; left: 0; padding: 18px 16px; background: #fffdf6; border-bottom: 1px solid #dbe1d2; box-shadow: 0 11px 20px rgba(24,60,46,.08); flex-direction: column; align-items: stretch; gap: 0; z-index: 5; }.main-nav.is-open { display: flex; }.main-nav a { padding: 11px 0; border-bottom: 1px solid #eef0e7; }
   .brand-copy strong { font-size: 11px; }.brand-copy small { font-size: 9px; }.brand-symbol { width: 34px; height: 34px; font-size: 11px; }
   .hero-section { padding: 45px 0 63px; }.hero-grid { display: flex; flex-direction: column; gap: 40px; align-items: stretch; }.hero-copy { order: 1; }.hero-visual { order: 2; min-height: 350px; padding: 0 0 37px; }.hero-image-wrap { height: 310px; box-shadow: 11px 11px 0 #dfe8c6; }.round-stamp { left: 2px; top: -17px; width: 80px; height: 80px; }.round-stamp span { font-size: 6px; }.round-stamp strong { font-size: 12px; }.season-card { bottom: 0; right: 6px; width: 180px; padding: 16px; }.season-card-top { margin-bottom: 12px; }.season-card strong { font-size: 16px; }
-  .hero-copy h1 { font-size: 47px; }.hero-lead { font-size: 13px; }.hero-actions { gap: 15px; }.hero-note { margin-top: 35px; }
+  .hero-copy h1 { font-size: 47px; }.hero-copy h1.hero-title { font-size: 34px; line-height: 1.45; }.hero-lead { font-size: 13px; }.hero-actions { gap: 15px; }.hero-note { margin-top: 35px; }
   .trust-grid { gap: 0; }.trust-grid > div { padding: 16px 7px 16px 0; }.trust-grid strong { font-size: 10px; }.trust-grid small { font-size: 8px; }
   .products-section { padding: 75px 0 82px; }.section-heading { display: block; }.section-heading > p { margin-top: 19px; }.category-tabs { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; margin-top: 27px; }.category-tabs button { white-space: nowrap; }.product-grid { grid-template-columns: repeat(2, 1fr); gap: 25px 13px; }.product-art { height: 200px; }.product-info h3 { font-size: 11px; }.product-info p { font-size: 9px; }.product-arrow { width: 23px; height: 23px; }.product-bottom strong, .product-bottom button { font-size: 9px; }.product-bottom button { gap: 2px; }
   .story-section { padding: 76px 0 84px; }.story-grid { display: flex; flex-direction: column; gap: 52px; }.story-visual { width: calc(100% - 14px); min-height: 310px; padding: 0 0 20px 15px; }.story-photo { height: 290px; box-shadow: -10px 10px 0 #c9f23d; }.story-label { min-width: 180px; padding: 12px; }.story-copy p { font-size: 12px; }.manifesto-section { padding: 75px 0; }.manifesto-inner p { font-size: 27px; }
