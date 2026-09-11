@@ -4,27 +4,32 @@ import { fileURLToPath } from "node:url";
 
 const homePath = fileURLToPath(new URL("../client/src/pages/Home.tsx", import.meta.url));
 const cssPath = fileURLToPath(new URL("../client/src/index.css", import.meta.url));
+const routerPath = fileURLToPath(new URL("./routers.ts", import.meta.url));
+const migrationPath = fileURLToPath(new URL("../drizzle/catalog-seed.sql", import.meta.url));
 
 const homeSource = readFileSync(homePath, "utf8");
 const cssSource = readFileSync(cssPath, "utf8");
+const routerSource = readFileSync(routerPath, "utf8");
+const migrationSource = readFileSync(migrationPath, "utf8");
 
 describe("Organic Holy Land storefront preview", () => {
-  it("contains the Arabic storefront sections and core shopping interactions", () => {
+  it("contains the Arabic storefront sections and dynamic shopping interactions", () => {
     expect(homeSource).toContain("عضوي الأرض المقدسة");
     expect(homeSource).toContain("HOLY LAND ORGANIC");
     expect(homeSource).toContain("Organic Holy Land");
-    expect(homeSource).toContain("زيت الزيتون");
-    expect(homeSource).toContain("العسل");
-    expect(homeSource).toContain("الزعتر");
-    expect(homeSource).toContain("الألبان");
     expect(homeSource).toContain("featuredCategories");
-    expect(homeSource).toContain("12.00 د.أ · 500 مل");
-    expect(homeSource).toContain("8.50 د.أ · 250 غ");
-    expect(homeSource).toContain("5.00 د.أ · 330 مل");
+    expect(homeSource).toContain("catalogQuery");
+    expect(homeSource).toContain("categoriesQuery");
     expect(homeSource).toContain("مؤونة تُفرح");
     expect(homeSource).toContain("قصتنا");
     expect(homeSource).toContain("setCartOpen");
     expect(homeSource).toContain("أضف للسلة");
+  });
+
+  it("exposes catalog and categories through public tRPC procedures", () => {
+    expect(routerSource).toContain("catalog: router");
+    expect(routerSource).toContain("list: publicProcedure");
+    expect(routerSource).toContain("categories: publicProcedure");
   });
 
   it("keeps the requested green/lime identity and mobile layout", () => {
@@ -34,12 +39,11 @@ describe("Organic Holy Land storefront preview", () => {
     expect(cssSource).toContain("font-family: 'Cairo'");
   });
 
-  it("references uploaded preview imagery instead of bundling local media", () => {
-    expect(homeSource).toContain("/manus-storage/hero-table_f2893f80.jpg");
-    expect(homeSource).toContain("/manus-storage/grape-leaves_a282bafc.jpg");
-    expect(homeSource).toContain("/manus-storage/olive-oil_368c793e.jpg");
-    expect(homeSource).toContain("/manus-storage/honey-preview_5a7b9acf.jpg");
-    expect(homeSource).toContain("/manus-storage/dish-preview_8a82762c.jpg");
-    expect(homeSource).toContain("/manus-storage/bread-preview_70405922.jpg");
+  it("seeds the uploaded preview imagery and current products into the catalog migration", () => {
+    expect(migrationSource).toContain("/manus-storage/grape-leaves_a282bafc.jpg");
+    expect(migrationSource).toContain("/manus-storage/olive-oil_368c793e.jpg");
+    expect(migrationSource).toContain("/manus-storage/honey-preview_5a7b9acf.jpg");
+    expect(migrationSource).toContain("/manus-storage/dish-preview_8a82762c.jpg");
+    expect(migrationSource).toContain("/manus-storage/bread-preview_70405922.jpg");
   });
 });

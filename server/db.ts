@@ -1,6 +1,6 @@
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, customers, orderItems, orders, users } from "../drizzle/schema";
+import { InsertUser, categories, customers, orderItems, orders, products, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -55,6 +55,34 @@ export async function getUserByOpenId(openId: string) {
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result[0];
+}
+
+export async function getCatalog() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: products.id,
+    name: products.name,
+    subtitle: products.subtitle,
+    price: products.price,
+    unitLabel: products.unitLabel,
+    tag: products.tag,
+    image: products.image,
+    art: products.art,
+    emoji: products.emoji,
+    category: categories.name,
+    categoryNote: categories.note,
+    categoryEmoji: categories.emoji,
+    categoryIsFeatured: categories.isFeatured,
+    sortOrder: products.sortOrder,
+  }).from(products).innerJoin(categories, eq(products.categoryId, categories.id)).where(eq(products.isActive, true)).orderBy(asc(products.sortOrder));
+}
+
+export async function getCategories() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ id: categories.id, name: categories.name, note: categories.note, emoji: categories.emoji, isFeatured: categories.isFeatured, sortOrder: categories.sortOrder })
+    .from(categories).orderBy(asc(categories.sortOrder));
 }
 
 export async function upsertClerkUser(input: { clerkUserId: string; name?: string | null; email?: string | null; role?: "user" | "admin" }) {
@@ -149,10 +177,26 @@ export function calculateOrder(input: CheckoutInput) {
   return { items: normalizedItems, subtotal, shippingFee, total: Number((subtotal + shippingFee).toFixed(2)) };
 }
 
+export async function calculateOrderFromDatabase(input: CheckoutInput) {
+  const catalog = await getCatalog();
+  if (!catalog.length) throw new Error("Catalog is not configured");
+  const normalizedItems = input.items.map((item) => {
+    const product = catalog.find((candidate) => candidate.id === item.productId);
+    if (!product) throw new Error(`Unknown product: ${item.productId}`);
+    if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) throw new Error("Quantity must be between 1 and 99");
+    const unitPrice = Number(product.price);
+    const lineTotal = Number((unitPrice * item.quantity).toFixed(2));
+    return { ...item, productName: product.name, unitPrice, lineTotal };
+  });
+  const subtotal = Number(normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0).toFixed(2));
+  const shippingFee = calculateShipping(input.city).fee;
+  return { items: normalizedItems, subtotal, shippingFee, total: Number((subtotal + shippingFee).toFixed(2)) };
+}
+
 export async function createOrder(input: CheckoutInput, userId?: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
-  const totals = calculateOrder(input);
+  const totals = await calculateOrderFromDatabase(input);
   const orderNumber = makeOrderNumber();
 
   return db.transaction(async (tx) => {

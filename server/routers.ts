@@ -2,7 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { calculateOrder, calculateShipping, createOrder, getAllOrders, getOrdersForUser, updateOrderStatus } from "./db";
+import { calculateOrderFromDatabase, calculateShipping, createOrder, getAllOrders, getCatalog, getCategories, getOrdersForUser, updateOrderStatus } from "./db";
 import { z } from "zod";
 
 const checkoutItem = z.object({
@@ -24,6 +24,10 @@ const orderStatus = z.enum(["pending", "confirmed", "shipped", "cancelled"]);
 
 export const appRouter = router({
   system: systemRouter,
+  catalog: router({
+    list: publicProcedure.query(() => getCatalog()),
+    categories: publicProcedure.query(() => getCategories()),
+  }),
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -46,8 +50,8 @@ export const appRouter = router({
         paymentStatus: order.paymentStatus,
       };
     }),
-    quote: publicProcedure.input(checkoutInput.pick({ city: true, items: true })).query(({ input }) => {
-      const totals = calculateOrder({ name: "quote", email: "quote@example.com", phone: "0000000", address: "quote", city: input.city, items: input.items });
+    quote: publicProcedure.input(checkoutInput.pick({ city: true, items: true })).query(async ({ input }) => {
+      const totals = await calculateOrderFromDatabase({ name: "quote", email: "quote@example.com", phone: "0000000", address: "quote", city: input.city, items: input.items });
       return { subtotal: totals.subtotal, shippingFee: totals.shippingFee, total: totals.total, shippingLabel: calculateShipping(input.city).label, currency: "JOD" as const };
     }),
     myOrders: protectedProcedure.query(async ({ ctx }) => {

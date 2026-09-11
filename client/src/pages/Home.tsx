@@ -29,6 +29,7 @@ type Product = {
   image?: string;
   art: string;
   emoji: string;
+  unitLabel: string;
 };
 
 const jordanLocations = [
@@ -45,83 +46,24 @@ const jordanLocations = [
   { governorate: "محافظة العقبة", cities: ["العقبة"] },
 ];
 
-const products: Product[] = [
-  {
-    id: 1,
-    name: "زيت زيتون بكر ممتاز",
-    subtitle: "معصور على البارد من زيتون شمال الأردن",
-    price: "12.00 د.أ · 500 مل",
-    category: "زيت الزيتون",
-    tag: "حصاد الموسم",
-    image: "/manus-storage/olive-oil_368c793e.jpg",
-    art: "olive-art",
-    emoji: "🫒",
-  },
-  {
-    id: 2,
-    name: "عسل جبلي خام",
-    subtitle: "من مراعي حوران، بلا إضافات",
-    price: "8.50 د.أ · 250 غ",
-    category: "العسل",
-    tag: "الأكثر طلباً",
-    image: "/manus-storage/honey-preview_5a7b9acf.jpg",
-    art: "honey-art",
-    emoji: "🍯",
-  },
-  {
-    id: 3,
-    name: "زعتر بلدي مع السمسم",
-    subtitle: "خلطة دارنا اليومية، محمصة بعناية",
-    price: "3.50 د.أ · 250 غ",
-    category: "الزعتر",
-    tag: "خلطة دارنا",
-    image: "/manus-storage/dish-preview_8a82762c.jpg",
-    art: "thyme-art",
-    emoji: "🌿",
-  },
-  {
-    id: 4,
-    name: "ورق عنب بلدي",
-    subtitle: "محفوظ بماء وملح، جاهز لطبخة البيت",
-    price: "4.75 د.أ · 700 غ",
-    category: "مؤونة البيت",
-    image: "/manus-storage/grape-leaves_a282bafc.jpg",
-    art: "grape-art",
-    emoji: "🍃",
-  },
-  {
-    id: 5,
-    name: "لبنة بالزعتر",
-    subtitle: "لبن بلدي كثيف مع رشة من زعترنا",
-    price: "3.25 د.أ · 400 غ",
-    category: "الألبان",
-    tag: "طازج",
-    image: "/manus-storage/bread-preview_70405922.jpg",
-    art: "labneh-art",
-    emoji: "🥣",
-  },
-  {
-    id: 6,
-    name: "دبس رمان أصلي",
-    subtitle: "مركز من رمان الموسم، حامض ومتوازن",
-    price: "5.00 د.أ · 330 مل",
-    category: "مؤونة البيت",
-    image: "/manus-storage/dish-preview_8a82762c.jpg",
-    art: "pomegranate-art",
-    emoji: "❤️",
-  },
-];
-
-const categories = ["التشكيلة كاملة", "زيت الزيتون", "العسل", "الزعتر", "الألبان", "مؤونة البيت", "موسمنا"];
-const featuredCategories = [
-  { name: "زيت الزيتون", note: "معصور على البارد", emoji: "🫒", filter: "زيت الزيتون" },
-  { name: "العسل", note: "خام من مراعي حوران", emoji: "🍯", filter: "العسل" },
-  { name: "الزعتر", note: "خلطة دارنا اليومية", emoji: "🌿", filter: "الزعتر" },
-  { name: "الألبان", note: "طازجة من مزارعنا", emoji: "🥣", filter: "الألبان" },
-];
-
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("التشكيلة كاملة");
+  const catalogQuery = trpc.catalog.list.useQuery();
+  const categoriesQuery = trpc.catalog.categories.useQuery();
+  const products = useMemo<Product[]>(() => (catalogQuery.data ?? []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    subtitle: item.subtitle,
+    price: `${Number(item.price).toFixed(2)} د.أ · ${item.unitLabel}`,
+    category: item.category,
+    tag: item.tag ?? undefined,
+    image: item.image ?? undefined,
+    art: item.art,
+    emoji: item.emoji,
+    unitLabel: item.unitLabel,
+  })), [catalogQuery.data]);
+  const categories = useMemo(() => ["التشكيلة كاملة", ...(categoriesQuery.data ?? []).map((category) => category.name)], [categoriesQuery.data]);
+  const featuredCategories = useMemo(() => (categoriesQuery.data ?? []).filter((category) => category.isFeatured).map((category) => ({ name: category.name, note: category.note, emoji: category.emoji, filter: category.name })), [categoriesQuery.data]);
   const [cart, setCart] = useState<Product[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -145,12 +87,13 @@ export default function Home() {
   });
 
   const filteredProducts = useMemo(() => {
+    if (catalogQuery.isLoading || catalogQuery.isError) return [];
     return products.filter((product) => {
       const categoryMatch = activeCategory === "التشكيلة كاملة" || product.category === activeCategory;
       const searchMatch = `${product.name} ${product.subtitle}`.includes(search.trim());
       return categoryMatch && searchMatch;
     });
-  }, [activeCategory, search]);
+  }, [activeCategory, search, products, catalogQuery.isLoading, catalogQuery.isError]);
 
   const addToCart = (product: Product) => {
     setCart((current) => [...current, product]);
@@ -273,10 +216,12 @@ export default function Home() {
             <div className="category-tabs" role="tablist" aria-label="تصنيف المنتجات">
               {categories.map((category) => <button key={category} className={activeCategory === category ? "active" : ""} onClick={() => setActiveCategory(category)}>{category}</button>)}
             </div>
-            <div className="product-grid">
+            {catalogQuery.isLoading && <div className="empty-products"><Leaf size={25} /><p>جارٍ تحميل خيراتنا من قاعدة البيانات...</p></div>}
+            {catalogQuery.isError && <div className="empty-products"><Leaf size={25} /><p>تعذر تحميل المنتجات الآن. حاول تحديث الصفحة.</p></div>}
+            {!catalogQuery.isLoading && !catalogQuery.isError && <div className="product-grid">
               {filteredProducts.map((product) => <ProductCard key={product.id} product={product} onAdd={() => addToCart(product)} />)}
-            </div>
-            {filteredProducts.length === 0 && <div className="empty-products"><Leaf size={25} /><p>لا توجد نتائج مطابقة بعد. جرّب كلمة أخرى.</p></div>}
+            </div>}
+            {!catalogQuery.isLoading && !catalogQuery.isError && filteredProducts.length === 0 && <div className="empty-products"><Leaf size={25} /><p>لا توجد نتائج مطابقة بعد. جرّب كلمة أخرى.</p></div>}
             <p className="preview-price-note">* الأسعار المعروضة تجريبية لهذه المعاينة، ويمكن تعديلها عند اعتماد المتجر.</p>
           </div>
         </section>
