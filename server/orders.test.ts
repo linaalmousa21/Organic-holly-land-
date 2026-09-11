@@ -33,6 +33,7 @@ describe("order checkout calculations", () => {
 
   it("uses the city delivery table and a fallback for other cities", () => {
     expect(calculateShipping("إربد")).toEqual({ city: "إربد", fee: 2, label: "إربد" });
+    expect(calculateShipping("السلط")).toEqual({ city: "السلط", fee: 2.5, label: "السلط" });
     expect(calculateShipping("مادبا")).toEqual({ city: "مادبا", fee: 3, label: "باقي المحافظات" });
     expect(calculateOrder({
       name: "عميل تجريبي", email: "customer@example.com", phone: "0790000000",

@@ -30,6 +30,20 @@ type Product = {
   emoji: string;
 };
 
+const jordanLocations = [
+  { governorate: "محافظة العاصمة", cities: ["عمان"] },
+  { governorate: "محافظة إربد", cities: ["إربد"] },
+  { governorate: "محافظة الزرقاء", cities: ["الزرقاء"] },
+  { governorate: "محافظة جرش", cities: ["جرش"] },
+  { governorate: "محافظة عجلون", cities: ["عجلون"] },
+  { governorate: "محافظة المفرق", cities: ["المفرق"] },
+  { governorate: "محافظة البلقاء", cities: ["السلط"] },
+  { governorate: "محافظة الكرك", cities: ["الكرك"] },
+  { governorate: "محافظة الطفيلة", cities: ["الطفيلة"] },
+  { governorate: "محافظة معان", cities: ["معان"] },
+  { governorate: "محافظة العقبة", cities: ["العقبة"] },
+];
+
 const products: Product[] = [
   {
     id: 1,
@@ -113,7 +127,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
-  const [checkout, setCheckout] = useState({ name: "", email: "", phone: "", address: "", city: "إربد", notes: "" });
+  const [checkout, setCheckout] = useState({ name: "", email: "", phone: "", address: "", city: "", notes: "" });
   const [confirmation, setConfirmation] = useState<{ orderNumber: string; total: number; shippingFee: number; shippingLabel: string } | null>(null);
   const quoteItems = useMemo(() => Object.values(cart.reduce<Record<number, { productId: number; quantity: number }>>((acc, product) => { acc[product.id] ??= { productId: product.id, quantity: 0 }; acc[product.id].quantity += 1; return acc; }, {})), [cart]);
   const shippingQuote = trpc.orders.quote.useQuery({ city: checkout.city, items: quoteItems }, { enabled: cart.length > 0 && checkout.city.trim().length > 1 });
@@ -321,7 +335,10 @@ export default function Home() {
             <input required type="email" placeholder="البريد الإلكتروني" aria-label="البريد الإلكتروني" value={checkout.email} onChange={(event) => setCheckout({ ...checkout, email: event.target.value })} />
             <input required minLength={7} placeholder="رقم الهاتف" aria-label="رقم الهاتف" value={checkout.phone} onChange={(event) => setCheckout({ ...checkout, phone: event.target.value })} />
             <input required minLength={5} placeholder="العنوان بالتفصيل" aria-label="العنوان بالتفصيل" value={checkout.address} onChange={(event) => setCheckout({ ...checkout, address: event.target.value })} />
-            <input required minLength={2} placeholder="المدينة" aria-label="المدينة" value={checkout.city} onChange={(event) => setCheckout({ ...checkout, city: event.target.value })} />
+            <select required className="location-select" aria-label="المحافظة أو المدينة" value={checkout.city} onChange={(event) => setCheckout({ ...checkout, city: event.target.value })}>
+              <option value="">اختر المحافظة أو المدينة</option>
+              {jordanLocations.map((location) => <optgroup key={location.governorate} label={location.governorate}>{location.cities.map((city) => <option key={city} value={city}>{city}</option>)}</optgroup>)}
+            </select>
             <textarea placeholder="ملاحظات إضافية (اختياري)" aria-label="ملاحظات إضافية" value={checkout.notes} onChange={(event) => setCheckout({ ...checkout, notes: event.target.value })} />
             <button className="checkout-button" type="submit" disabled={createOrderMutation.isPending}>{createOrderMutation.isPending ? "جارٍ حفظ الطلب..." : <>حفظ الطلب والمتابعة <ArrowLeft size={17} /></>}</button>
           </form>
