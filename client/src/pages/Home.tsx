@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react";
 import {
   ArrowLeft,
   ArrowUpLeft,
@@ -189,6 +190,7 @@ export default function Home() {
             <a href="#contact" onClick={() => setMenuOpen(false)}>تواصل معنا</a>
           </nav>
           <div className="header-actions">
+            <AuthControls />
             <button className="icon-button" aria-label="البحث" onClick={() => setSearchOpen((open) => !open)}><Search size={19} /></button>
             <button className="cart-button" aria-label="فتح سلة المشتريات" onClick={() => setCartOpen(true)}>
               <ShoppingBag size={18} />
@@ -362,4 +364,9 @@ function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }
     <div className="product-info"><div><h3>{product.name}</h3><p>{product.subtitle}</p></div><span className="product-arrow"><ArrowUpLeft size={17} /></span></div>
     <div className="product-bottom"><strong>{product.price}</strong><button onClick={onAdd}><Plus size={15} /> أضف للسلة</button></div>
   </article>;
+}
+
+function AuthControls() {
+  if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) return null;
+  return <div className="auth-controls"><Show when="signed-out"><SignInButton mode="modal"><button className="auth-link" type="button">دخول</button></SignInButton><SignUpButton mode="modal"><button className="auth-signup" type="button">إنشاء حساب</button></SignUpButton></Show><Show when="signed-in"><UserButton /></Show></div>;
 }

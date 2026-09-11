@@ -1,8 +1,8 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { calculateOrder, calculateShipping, createOrder, getOrdersForUser } from "./db";
+import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { calculateOrder, calculateShipping, createOrder, getAllOrders, getOrdersForUser, updateOrderStatus } from "./db";
 import { z } from "zod";
 
 const checkoutItem = z.object({
@@ -19,6 +19,8 @@ const checkoutInput = z.object({
   notes: z.string().trim().max(1000).optional(),
   items: z.array(checkoutItem).min(1).max(50),
 });
+
+const orderStatus = z.enum(["pending", "confirmed", "shipped", "cancelled"]);
 
 export const appRouter = router({
   system: systemRouter,
@@ -51,6 +53,10 @@ export const appRouter = router({
     myOrders: protectedProcedure.query(async ({ ctx }) => {
       return getOrdersForUser(ctx.user.id);
     }),
+  }),
+  admin: router({
+    orders: adminProcedure.query(() => getAllOrders()),
+    updateOrderStatus: adminProcedure.input(z.object({ orderId: z.number().int().positive(), status: orderStatus })).mutation(({ input }) => updateOrderStatus(input.orderId, input.status)),
   }),
 });
 

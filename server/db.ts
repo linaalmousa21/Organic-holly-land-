@@ -57,6 +57,33 @@ export async function getUserByOpenId(openId: string) {
   return result[0];
 }
 
+export async function upsertClerkUser(input: { clerkUserId: string; name?: string | null; email?: string | null; role?: "user" | "admin" }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  const openId = `clerk:${input.clerkUserId}`;
+  await db.insert(users).values({
+    openId,
+    clerkUserId: input.clerkUserId,
+    name: input.name ?? null,
+    email: input.email ?? null,
+    loginMethod: "clerk",
+    role: input.role ?? "user",
+    lastSignedIn: new Date(),
+  }).onDuplicateKeyUpdate({
+    set: {
+      clerkUserId: input.clerkUserId,
+      name: input.name ?? null,
+      email: input.email ?? null,
+      loginMethod: "clerk",
+      role: input.role ?? "user",
+      lastSignedIn: new Date(),
+    },
+  });
+  const result = await db.select().from(users).where(eq(users.clerkUserId, input.clerkUserId)).limit(1);
+  if (!result[0]) throw new Error("Unable to create Clerk user");
+  return result[0];
+}
+
 export const ORDER_CATALOG = {
   1: { name: "زيت زيتون بكر ممتاز", price: 12 },
   2: { name: "عسل جبلي خام", price: 8.5 },
@@ -180,4 +207,28 @@ export async function getOrdersForUser(userId: number) {
     createdAt: orders.createdAt,
   }).from(orders).innerJoin(customers, eq(orders.customerId, customers.id))
     .where(eq(customers.userId, userId)).orderBy(desc(orders.createdAt));
+}
+
+export async function getAllOrders() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: orders.id,
+    orderNumber: orders.orderNumber,
+    status: orders.status,
+    paymentStatus: orders.paymentStatus,
+    total: orders.total,
+    currency: orders.currency,
+    customerName: orders.customerName,
+    customerEmail: orders.customerEmail,
+    shippingCity: orders.shippingCity,
+    createdAt: orders.createdAt,
+  }).from(orders).orderBy(desc(orders.createdAt));
+}
+
+export async function updateOrderStatus(orderId: number, status: "pending" | "confirmed" | "shipped" | "cancelled") {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.update(orders).set({ status, updatedAt: new Date() }).where(eq(orders.id, orderId));
+  return { orderId, status };
 }
