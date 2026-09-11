@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { trpc } from "@/lib/trpc";
 import {
   ArrowLeft,
   ArrowUpLeft,
@@ -112,6 +113,19 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [checkout, setCheckout] = useState({ name: "", email: "", phone: "", address: "", city: "إربد", notes: "" });
+  const createOrderMutation = trpc.orders.create.useMutation({
+    onSuccess: (result) => {
+      setCart([]);
+      setCartOpen(false);
+      setToast(`تم حفظ طلبك ${result.orderNumber} — الدفع قيد الانتظار`);
+      window.setTimeout(() => setToast(""), 4200);
+    },
+    onError: (error) => {
+      setToast(error.message || "تعذر حفظ الطلب، حاول مرة أخرى");
+      window.setTimeout(() => setToast(""), 3200);
+    },
+  });
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -298,8 +312,16 @@ export default function Home() {
         <div className="drawer-head"><div><span className="eyebrow"><span></span> مشترياتك</span><h3>سلة المونة</h3></div><button className="icon-button" onClick={() => setCartOpen(false)} aria-label="إغلاق السلة"><X size={20} /></button></div>
         {cart.length === 0 ? <div className="empty-cart"><ShoppingBag size={32} /><h4>السلة فاضية حالياً</h4><p>أضف شيئاً من رفوفنا، وخلّينا نجهّز لك الطلب.</p><button className="primary-button" onClick={() => { setCartOpen(false); document.getElementById("products")?.scrollIntoView({ behavior: "smooth" }); }}>تصفّح المنتجات <ArrowLeft size={16} /></button></div> : <>
           <div className="cart-list">{cart.map((product, index) => <div className="cart-line" key={`${product.id}-${index}`}><span className={`mini-art ${product.art}`}>{product.emoji}</span><div><strong>{product.name}</strong><small>{product.price}</small></div><button onClick={() => removeFromCart(index)} aria-label={`إزالة ${product.name}`}><Minus size={15} /></button></div>)}</div>
-          <div className="drawer-note"><Check size={15} /> هذه معاينة فقط — الدفع والتوصيل يُحددان لاحقاً.</div>
-          <button className="checkout-button" onClick={() => setToast("زر الدفع جاهز للربط بعد اعتماد المعاينة")}>متابعة الطلب <ArrowLeft size={17} /></button>
+          <div className="drawer-note"><Check size={15} /> احفظ بيانات التوصيل لإصدار طلبك. الدفع الإلكتروني سيُفعّل بعد ربط HyperPay.</div>
+          <form className="order-form" onSubmit={(event) => { event.preventDefault(); createOrderMutation.mutate({ ...checkout, items: Object.values(cart.reduce<Record<number, { productId: number; quantity: number }>>((acc, product) => { acc[product.id] ??= { productId: product.id, quantity: 0 }; acc[product.id].quantity += 1; return acc; }, {})) }); }}>
+            <input required minLength={2} placeholder="الاسم الكامل" aria-label="الاسم الكامل" value={checkout.name} onChange={(event) => setCheckout({ ...checkout, name: event.target.value })} />
+            <input required type="email" placeholder="البريد الإلكتروني" aria-label="البريد الإلكتروني" value={checkout.email} onChange={(event) => setCheckout({ ...checkout, email: event.target.value })} />
+            <input required minLength={7} placeholder="رقم الهاتف" aria-label="رقم الهاتف" value={checkout.phone} onChange={(event) => setCheckout({ ...checkout, phone: event.target.value })} />
+            <input required minLength={5} placeholder="العنوان بالتفصيل" aria-label="العنوان بالتفصيل" value={checkout.address} onChange={(event) => setCheckout({ ...checkout, address: event.target.value })} />
+            <input required minLength={2} placeholder="المدينة" aria-label="المدينة" value={checkout.city} onChange={(event) => setCheckout({ ...checkout, city: event.target.value })} />
+            <textarea placeholder="ملاحظات إضافية (اختياري)" aria-label="ملاحظات إضافية" value={checkout.notes} onChange={(event) => setCheckout({ ...checkout, notes: event.target.value })} />
+            <button className="checkout-button" type="submit" disabled={createOrderMutation.isPending}>{createOrderMutation.isPending ? "جارٍ حفظ الطلب..." : <>حفظ الطلب والمتابعة <ArrowLeft size={17} /></>}</button>
+          </form>
         </>}
       </aside></div>}
 

@@ -2,7 +2,7 @@
 
 ## Current state
 
-The project is a React/Vite storefront with the Manus-authenticated server scaffold, database configuration, responsive storefront preview, catalog filtering, cart preview, and test coverage. `netlify.toml` builds and publishes the static client from `dist/public`; `pnpm build` also bundles the Node server for Render.
+The project is a React/Vite storefront with the Manus-authenticated server, MySQL/TiDB schema for customers, orders, and order items, server-side price validation, a tRPC checkout mutation, responsive catalog filtering, and test coverage. `netlify.toml` builds and publishes the static client from `dist/public`; `pnpm build` also bundles the Node server for Render.
 
 ## Services
 
@@ -17,4 +17,4 @@ Copy `.env.example` into the platform secret managers. Never commit `.env`, `DAT
 
 ## Important release gate
 
-The current cart and checkout affordances are preview interactions. Production order persistence, shipping calculation, customer accounts beyond the existing Manus auth scaffold, and HyperPay card authorization require implementation and sandbox verification before accepting real orders or payments.
+Orders are now persisted with pending payment status and immutable product/customer snapshots. Shipping calculation, order-history UI, transactional email, and HyperPay card authorization still require implementation and sandbox verification before accepting real card payments.
