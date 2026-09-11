@@ -114,12 +114,14 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [checkout, setCheckout] = useState({ name: "", email: "", phone: "", address: "", city: "إربد", notes: "" });
+  const [confirmation, setConfirmation] = useState<{ orderNumber: string; total: number; shippingFee: number; shippingLabel: string } | null>(null);
+  const quoteItems = useMemo(() => Object.values(cart.reduce<Record<number, { productId: number; quantity: number }>>((acc, product) => { acc[product.id] ??= { productId: product.id, quantity: 0 }; acc[product.id].quantity += 1; return acc; }, {})), [cart]);
+  const shippingQuote = trpc.orders.quote.useQuery({ city: checkout.city, items: quoteItems }, { enabled: cart.length > 0 && checkout.city.trim().length > 1 });
   const createOrderMutation = trpc.orders.create.useMutation({
     onSuccess: (result) => {
       setCart([]);
       setCartOpen(false);
-      setToast(`تم حفظ طلبك ${result.orderNumber} — الدفع قيد الانتظار`);
-      window.setTimeout(() => setToast(""), 4200);
+      setConfirmation({ orderNumber: result.orderNumber, total: result.total, shippingFee: result.shippingFee, shippingLabel: result.shippingLabel });
     },
     onError: (error) => {
       setToast(error.message || "تعذر حفظ الطلب، حاول مرة أخرى");
@@ -313,7 +315,8 @@ export default function Home() {
         {cart.length === 0 ? <div className="empty-cart"><ShoppingBag size={32} /><h4>السلة فاضية حالياً</h4><p>أضف شيئاً من رفوفنا، وخلّينا نجهّز لك الطلب.</p><button className="primary-button" onClick={() => { setCartOpen(false); document.getElementById("products")?.scrollIntoView({ behavior: "smooth" }); }}>تصفّح المنتجات <ArrowLeft size={16} /></button></div> : <>
           <div className="cart-list">{cart.map((product, index) => <div className="cart-line" key={`${product.id}-${index}`}><span className={`mini-art ${product.art}`}>{product.emoji}</span><div><strong>{product.name}</strong><small>{product.price}</small></div><button onClick={() => removeFromCart(index)} aria-label={`إزالة ${product.name}`}><Minus size={15} /></button></div>)}</div>
           <div className="drawer-note"><Check size={15} /> احفظ بيانات التوصيل لإصدار طلبك. الدفع الإلكتروني سيُفعّل بعد ربط HyperPay.</div>
-          <form className="order-form" onSubmit={(event) => { event.preventDefault(); createOrderMutation.mutate({ ...checkout, items: Object.values(cart.reduce<Record<number, { productId: number; quantity: number }>>((acc, product) => { acc[product.id] ??= { productId: product.id, quantity: 0 }; acc[product.id].quantity += 1; return acc; }, {})) }); }}>
+          {shippingQuote.data && <div className="order-summary"><span>المجموع الفرعي <b>{shippingQuote.data.subtotal.toFixed(2)} د.أ</b></span><span>الشحن ({shippingQuote.data.shippingLabel}) <b>{shippingQuote.data.shippingFee.toFixed(2)} د.أ</b></span><strong>الإجمالي <b>{shippingQuote.data.total.toFixed(2)} د.أ</b></strong></div>}
+          <form className="order-form" onSubmit={(event) => { event.preventDefault(); createOrderMutation.mutate({ ...checkout, items: quoteItems }); }}>
             <input required minLength={2} placeholder="الاسم الكامل" aria-label="الاسم الكامل" value={checkout.name} onChange={(event) => setCheckout({ ...checkout, name: event.target.value })} />
             <input required type="email" placeholder="البريد الإلكتروني" aria-label="البريد الإلكتروني" value={checkout.email} onChange={(event) => setCheckout({ ...checkout, email: event.target.value })} />
             <input required minLength={7} placeholder="رقم الهاتف" aria-label="رقم الهاتف" value={checkout.phone} onChange={(event) => setCheckout({ ...checkout, phone: event.target.value })} />
@@ -325,6 +328,7 @@ export default function Home() {
         </>}
       </aside></div>}
 
+      {confirmation && <div className="confirmation-overlay" role="dialog" aria-modal="true" aria-labelledby="confirmation-title"><div className="confirmation-card"><span className="confirmation-icon"><Check size={25} /></span><div className="eyebrow"><span></span> تم استلام الطلب</div><h3 id="confirmation-title">شكراً لثقتك بنا.</h3><p>تم حفظ طلبك بنجاح، وسنتواصل معك لتأكيد التوصيل والدفع.</p><div className="confirmation-details"><span>رقم الطلب <b>{confirmation.orderNumber}</b></span><span>التوصيل إلى <b>{confirmation.shippingLabel}</b></span><span>الإجمالي <b>{confirmation.total.toFixed(2)} د.أ</b></span><span>حالة الدفع <b>بانتظار الدفع</b></span></div><button className="primary-button" onClick={() => setConfirmation(null)}>العودة للمتجر <ArrowLeft size={17} /></button></div></div>}
       {toast && <div className="toast"><Check size={16} /> {toast}</div>}
     </div>
   );

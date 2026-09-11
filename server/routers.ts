@@ -2,7 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createOrder, getOrdersForUser } from "./db";
+import { calculateOrder, calculateShipping, createOrder, getOrdersForUser } from "./db";
 import { z } from "zod";
 
 const checkoutItem = z.object({
@@ -36,10 +36,17 @@ export const appRouter = router({
       return {
         success: true as const,
         orderNumber: order.orderNumber,
+        subtotal: order.subtotal,
+        shippingFee: order.shippingFee,
         total: order.total,
+        shippingLabel: calculateShipping(input.city).label,
         currency: "JOD" as const,
         paymentStatus: order.paymentStatus,
       };
+    }),
+    quote: publicProcedure.input(checkoutInput.pick({ city: true, items: true })).query(({ input }) => {
+      const totals = calculateOrder({ name: "quote", email: "quote@example.com", phone: "0000000", address: "quote", city: input.city, items: input.items });
+      return { subtotal: totals.subtotal, shippingFee: totals.shippingFee, total: totals.total, shippingLabel: calculateShipping(input.city).label, currency: "JOD" as const };
     }),
     myOrders: protectedProcedure.query(async ({ ctx }) => {
       return getOrdersForUser(ctx.user.id);

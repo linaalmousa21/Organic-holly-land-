@@ -76,6 +76,29 @@ export type CheckoutInput = {
   items: Array<{ productId: number; quantity: number }>;
 };
 
+const SHIPPING_FEES: Record<string, number> = {
+  "عمان": 2,
+  "إربد": 2,
+  "الزرقاء": 2.5,
+  "جرش": 2.25,
+  "عجلون": 2.25,
+  "المفرق": 2.5,
+  "البلقاء": 2.5,
+  "الكرك": 3.5,
+  "الطفيلة": 3.5,
+  "معان": 4,
+  "العقبة": 4,
+};
+
+export function calculateShipping(city: string) {
+  const normalizedCity = city.trim();
+  return {
+    city: normalizedCity,
+    fee: SHIPPING_FEES[normalizedCity] ?? 3,
+    label: SHIPPING_FEES[normalizedCity] === undefined ? "باقي المحافظات" : normalizedCity,
+  };
+}
+
 function makeOrderNumber() {
   const stamp = Date.now().toString(36).toUpperCase();
   const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -94,7 +117,8 @@ export function calculateOrder(input: CheckoutInput) {
     return { ...item, productName: product.name, unitPrice: product.price, lineTotal };
   });
   const subtotal = Number(normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0).toFixed(2));
-  return { items: normalizedItems, subtotal, shippingFee: 0, total: subtotal };
+  const shippingFee = calculateShipping(input.city).fee;
+  return { items: normalizedItems, subtotal, shippingFee, total: Number((subtotal + shippingFee).toFixed(2)) };
 }
 
 export async function createOrder(input: CheckoutInput, userId?: number) {
