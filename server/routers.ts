@@ -2,7 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { calculateOrderFromDatabase, calculateShipping, createOrder, getAllOrders, getCatalog, getCategories, getOrdersForUser, updateOrderStatus } from "./db";
+import { archiveProduct, calculateOrderFromDatabase, calculateShipping, createCategory, createProduct, createOrder, deleteCategory, getAdminCatalog, getAdminCategories, getAllOrders, getCatalog, getCategories, getOrdersForUser, updateCategory, updateOrderStatus, updateProduct } from "./db";
 import { z } from "zod";
 
 const checkoutItem = z.object({
@@ -21,6 +21,13 @@ const checkoutInput = z.object({
 });
 
 const orderStatus = z.enum(["pending", "confirmed", "shipped", "cancelled"]);
+const productInput = z.object({
+  categoryId: z.number().int().positive(), name: z.string().trim().min(2).max(180), subtitle: z.string().trim().min(2).max(255),
+  price: z.string().regex(/^\d+(\.\d{1,2})?$/), unitLabel: z.string().trim().min(1).max(60), tag: z.string().trim().max(80).optional(),
+  image: z.string().trim().max(500).optional(), art: z.string().trim().min(1).max(60), emoji: z.string().trim().min(1).max(8),
+  stockQuantity: z.number().int().min(0).max(100000), lowStockThreshold: z.number().int().min(0).max(100000), sortOrder: z.number().int().min(0).max(100000), isActive: z.boolean().optional().default(true),
+});
+const categoryInput = z.object({ name: z.string().trim().min(2).max(100), note: z.string().trim().min(2).max(180), emoji: z.string().trim().min(1).max(8), sortOrder: z.number().int().min(0).max(100000), isFeatured: z.boolean() });
 
 export const appRouter = router({
   system: systemRouter,
@@ -61,6 +68,14 @@ export const appRouter = router({
   admin: router({
     orders: adminProcedure.query(() => getAllOrders()),
     updateOrderStatus: adminProcedure.input(z.object({ orderId: z.number().int().positive(), status: orderStatus })).mutation(({ input }) => updateOrderStatus(input.orderId, input.status)),
+    catalog: adminProcedure.query(() => getAdminCatalog()),
+    categories: adminProcedure.query(() => getAdminCategories()),
+    createProduct: adminProcedure.input(productInput).mutation(({ input }) => createProduct(input)),
+    updateProduct: adminProcedure.input(z.object({ id: z.number().int().positive(), data: productInput })).mutation(({ input }) => updateProduct(input.id, input.data)),
+    archiveProduct: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => archiveProduct(input.id)),
+    createCategory: adminProcedure.input(categoryInput).mutation(({ input }) => createCategory(input)),
+    updateCategory: adminProcedure.input(z.object({ id: z.number().int().positive(), data: categoryInput })).mutation(({ input }) => updateCategory(input.id, input.data)),
+    deleteCategory: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => deleteCategory(input.id)),
   }),
 });
 

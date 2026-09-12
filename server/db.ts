@@ -1,4 +1,4 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, categories, customers, orderItems, orders, products, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -70,6 +70,8 @@ export async function getCatalog() {
     image: products.image,
     art: products.art,
     emoji: products.emoji,
+    stockQuantity: products.stockQuantity,
+    lowStockThreshold: products.lowStockThreshold,
     category: categories.name,
     categoryNote: categories.note,
     categoryEmoji: categories.emoji,
@@ -83,6 +85,74 @@ export async function getCategories() {
   if (!db) return [];
   return db.select({ id: categories.id, name: categories.name, note: categories.note, emoji: categories.emoji, isFeatured: categories.isFeatured, sortOrder: categories.sortOrder })
     .from(categories).orderBy(asc(categories.sortOrder));
+}
+
+export async function getAdminCatalog() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: products.id, categoryId: products.categoryId, name: products.name, subtitle: products.subtitle,
+    price: products.price, unitLabel: products.unitLabel, tag: products.tag, image: products.image,
+    art: products.art, emoji: products.emoji, stockQuantity: products.stockQuantity,
+    lowStockThreshold: products.lowStockThreshold, sortOrder: products.sortOrder, isActive: products.isActive,
+    category: categories.name,
+  }).from(products).innerJoin(categories, eq(products.categoryId, categories.id)).orderBy(asc(products.sortOrder));
+}
+
+export async function getAdminCategories() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(categories).orderBy(asc(categories.sortOrder));
+}
+
+export async function createProduct(input: {
+  categoryId: number; name: string; subtitle: string; price: string; unitLabel: string; tag?: string;
+  image?: string; art: string; emoji: string; stockQuantity: number; lowStockThreshold: number; sortOrder: number; isActive: boolean;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  const result = await db.insert(products).values({ ...input, tag: input.tag || null, image: input.image || null });
+  return { id: Number(result[0].insertId) };
+}
+
+export async function updateProduct(id: number, input: {
+  categoryId: number; name: string; subtitle: string; price: string; unitLabel: string; tag?: string;
+  image?: string; art: string; emoji: string; stockQuantity: number; lowStockThreshold: number; sortOrder: number; isActive: boolean;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.update(products).set({ ...input, tag: input.tag || null, image: input.image || null, updatedAt: new Date() }).where(eq(products.id, id));
+  return { id };
+}
+
+export async function archiveProduct(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.update(products).set({ isActive: false, updatedAt: new Date() }).where(eq(products.id, id));
+  return { id, isActive: false };
+}
+
+export async function createCategory(input: { name: string; note: string; emoji: string; sortOrder: number; isFeatured: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  const result = await db.insert(categories).values(input);
+  return { id: Number(result[0].insertId) };
+}
+
+export async function updateCategory(id: number, input: { name: string; note: string; emoji: string; sortOrder: number; isFeatured: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.update(categories).set(input).where(eq(categories.id, id));
+  return { id };
+}
+
+export async function deleteCategory(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  const linkedProducts = await db.select({ id: products.id }).from(products).where(eq(products.categoryId, id)).limit(1);
+  if (linkedProducts.length) throw new Error("لا يمكن حذف تصنيف يحتوي على منتجات؛ انقل المنتجات أولاً");
+  await db.delete(categories).where(eq(categories.id, id));
+  return { id };
 }
 
 export async function upsertClerkUser(input: { clerkUserId: string; name?: string | null; email?: string | null; role?: "user" | "admin" }) {
@@ -184,6 +254,7 @@ export async function calculateOrderFromDatabase(input: CheckoutInput) {
     const product = catalog.find((candidate) => candidate.id === item.productId);
     if (!product) throw new Error(`Unknown product: ${item.productId}`);
     if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) throw new Error("Quantity must be between 1 and 99");
+    if (item.quantity > product.stockQuantity) throw new Error(`الكمية المتاحة من ${product.name} هي ${product.stockQuantity} فقط`);
     const unitPrice = Number(product.price);
     const lineTotal = Number((unitPrice * item.quantity).toFixed(2));
     return { ...item, productName: product.name, unitPrice, lineTotal };
@@ -234,6 +305,13 @@ export async function createOrder(input: CheckoutInput, userId?: number) {
       unitPrice: item.unitPrice.toFixed(2),
       lineTotal: item.lineTotal.toFixed(2),
     })));
+    for (const item of totals.items) {
+      const stockUpdate = await tx.update(products).set({
+        stockQuantity: sql`${products.stockQuantity} - ${item.quantity}`,
+        updatedAt: new Date(),
+      }).where(and(eq(products.id, item.productId), gte(products.stockQuantity, item.quantity)));
+      if (Number(stockUpdate[0].affectedRows) !== 1) throw new Error("المخزون تغير أثناء إتمام الطلب، يرجى المحاولة مجدداً");
+    }
     return { orderId, orderNumber, ...totals, paymentStatus: "pending" as const };
   });
 }

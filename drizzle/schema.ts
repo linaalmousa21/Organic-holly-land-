@@ -34,6 +34,8 @@ export const products = mysqlTable("products", {
   image: varchar("image", { length: 500 }),
   art: varchar("art", { length: 60 }).notNull(),
   emoji: varchar("emoji", { length: 8 }).notNull(),
+  stockQuantity: int("stockQuantity").default(0).notNull(),
+  lowStockThreshold: int("lowStockThreshold").default(5).notNull(),
   sortOrder: int("sortOrder").default(0).notNull(),
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

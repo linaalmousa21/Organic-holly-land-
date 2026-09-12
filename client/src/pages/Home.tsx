@@ -30,6 +30,8 @@ type Product = {
   art: string;
   emoji: string;
   unitLabel: string;
+  stockQuantity: number;
+  lowStockThreshold: number;
 };
 
 const jordanLocations = [
@@ -61,6 +63,8 @@ export default function Home() {
     art: item.art,
     emoji: item.emoji,
     unitLabel: item.unitLabel,
+    stockQuantity: item.stockQuantity,
+    lowStockThreshold: item.lowStockThreshold,
   })), [catalogQuery.data]);
   const categories = useMemo(() => ["التشكيلة كاملة", ...(categoriesQuery.data ?? []).map((category) => category.name)], [categoriesQuery.data]);
   const featuredCategories = useMemo(() => (categoriesQuery.data ?? []).filter((category) => category.isFeatured).map((category) => ({ name: category.name, note: category.note, emoji: category.emoji, filter: category.name })), [categoriesQuery.data]);
@@ -96,6 +100,11 @@ export default function Home() {
   }, [activeCategory, search, products, catalogQuery.isLoading, catalogQuery.isError]);
 
   const addToCart = (product: Product) => {
+    if (product.stockQuantity < 1) {
+      setToast("هذا المنتج نفد مؤقتاً");
+      window.setTimeout(() => setToast(""), 2400);
+      return;
+    }
     setCart((current) => [...current, product]);
     setToast(`أضيف «${product.name}» إلى السلة`);
     window.setTimeout(() => setToast(""), 2400);
@@ -299,7 +308,9 @@ export default function Home() {
 }
 
 function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }) {
-  return <article className="product-card">
+  const outOfStock = product.stockQuantity < 1;
+  const lowStock = !outOfStock && product.stockQuantity <= product.lowStockThreshold;
+  return <article className={`product-card ${outOfStock ? "is-out-of-stock" : ""}`}>
     <div className={`product-art ${product.art}`}>
       {product.image ? <img src={product.image} alt="" /> : <span className="art-emoji">{product.emoji}</span>}
       {product.tag && <span className="product-tag">{product.tag}</span>}
@@ -307,7 +318,7 @@ function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }
       <div className="art-grain"></div>
     </div>
     <div className="product-info"><div><h3>{product.name}</h3><p>{product.subtitle}</p></div><span className="product-arrow"><ArrowUpLeft size={17} /></span></div>
-    <div className="product-bottom"><strong>{product.price}</strong><button onClick={onAdd}><Plus size={15} /> أضف للسلة</button></div>
+    <div className="product-bottom"><strong>{product.price}</strong><button onClick={onAdd} disabled={outOfStock}>{outOfStock ? "نفد مؤقتاً" : <><Plus size={15} /> {lowStock ? `متبقي ${product.stockQuantity}` : "أضف للسلة"}</>}</button></div>
   </article>;
 }
 
