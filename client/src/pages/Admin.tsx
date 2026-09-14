@@ -18,7 +18,7 @@ import {
   Warehouse,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 
 type ProductRow = {
@@ -160,7 +160,40 @@ function Inventory({ products, onStock, onEdit }: { products: ProductRow[]; onSt
 }
 
 function ProductFormPanel({ form, setForm, categories, editing, busy, onSubmit, onClose }: { form: ProductForm; setForm: React.Dispatch<React.SetStateAction<ProductForm>>; categories: CategoryRow[]; editing: boolean; busy: boolean; onSubmit: (event: React.FormEvent) => void; onClose: () => void }) {
-  return <div className="admin-form-panel"><div className="form-panel-head"><div><span className="admin-kicker">PRODUCT EDITOR</span><h2>{editing ? "تعديل المنتج" : "إضافة منتج"}</h2></div><button onClick={onClose} aria-label="إغلاق"><X size={18} /></button></div><form onSubmit={onSubmit} className="admin-form"><label>اسم المنتج<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="مثال: عسل جبلي خام" /></label><label>الوصف المختصر<input required value={form.subtitle} onChange={(event) => setForm({ ...form, subtitle: event.target.value })} /></label><div className="form-grid-2"><label>التصنيف<select required value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: Number(event.target.value) })}><option value={0}>اختر تصنيفاً</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.emoji} {category.name}</option>)}</select></label><label>السعر بالدينار<input required inputMode="decimal" pattern="^\d+(\.\d{1,2})?$" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="0.00" /></label></div><div className="form-grid-2"><label>الوحدة<input required value={form.unitLabel} onChange={(event) => setForm({ ...form, unitLabel: event.target.value })} placeholder="500 مل" /></label><label>الشارة<input value={form.tag} onChange={(event) => setForm({ ...form, tag: event.target.value })} placeholder="الأكثر طلباً" /></label></div><label>رابط الصورة<input value={form.image} onChange={(event) => setForm({ ...form, image: event.target.value })} placeholder="/manus-storage/..." /></label><div className="form-grid-3"><label>الكمية<input required type="number" min={0} value={form.stockQuantity} onChange={(event) => setForm({ ...form, stockQuantity: Number(event.target.value) })} /></label><label>حد التنبيه<input required type="number" min={0} value={form.lowStockThreshold} onChange={(event) => setForm({ ...form, lowStockThreshold: Number(event.target.value) })} /></label><label>الترتيب<input required type="number" min={0} value={form.sortOrder} onChange={(event) => setForm({ ...form, sortOrder: Number(event.target.value) })} /></label></div><div className="form-grid-2"><label>رمز العرض<input required value={form.emoji} onChange={(event) => setForm({ ...form, emoji: event.target.value })} /></label><label>نمط البطاقة<input required value={form.art} onChange={(event) => setForm({ ...form, art: event.target.value })} /></label></div><label className="admin-checkbox"><input type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} /> إظهار المنتج في واجهة المتجر</label><button className="admin-primary form-submit" disabled={busy} type="submit"><Save size={17} />{busy ? "جارٍ الحفظ..." : "حفظ المنتج"}</button></form></div>;
+  const [previewUrl, setPreviewUrl] = useState(form.image || "");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState("");
+
+  useEffect(() => {
+    setPreviewUrl(form.image || "");
+  }, [form.image]);
+
+  useEffect(() => () => {
+    if (previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
+
+  async function uploadImage(file: File) {
+    const localUrl = URL.createObjectURL(file);
+    setPreviewUrl(localUrl);
+    setImageError("");
+    setUploadingImage(true);
+    try {
+      const body = new FormData();
+      body.append("image", file);
+      const response = await fetch("/api/admin/product-image", { method: "POST", body, credentials: "include" });
+      const payload = await response.json().catch(() => ({})) as { url?: string; error?: string };
+      if (!response.ok || !payload.url) throw new Error(payload.error || "تعذر رفع الصورة");
+      setForm((current) => ({ ...current, image: payload.url! }));
+    } catch (error) {
+      URL.revokeObjectURL(localUrl);
+      setPreviewUrl(form.image || "");
+      setImageError(error instanceof Error ? error.message : "تعذر رفع الصورة");
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
+  return <div className="admin-form-panel"><div className="form-panel-head"><div><span className="admin-kicker">PRODUCT EDITOR</span><h2>{editing ? "تعديل المنتج" : "إضافة منتج"}</h2></div><button onClick={onClose} aria-label="إغلاق"><X size={18} /></button></div><form onSubmit={onSubmit} className="admin-form"><label>اسم المنتج<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="مثال: عسل جبلي خام" /></label><label>الوصف المختصر<input required value={form.subtitle} onChange={(event) => setForm({ ...form, subtitle: event.target.value })} /></label><div className="form-grid-2"><label>التصنيف<select required value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: Number(event.target.value) })}><option value={0}>اختر تصنيفاً</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.emoji} {category.name}</option>)}</select></label><label>السعر بالدينار<input required inputMode="decimal" pattern="^\d+(\.\d{1,2})?$" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="0.00" /></label></div><div className="form-grid-2"><label>الوحدة<input required value={form.unitLabel} onChange={(event) => setForm({ ...form, unitLabel: event.target.value })} placeholder="500 مل" /></label><label>الشارة<input value={form.tag} onChange={(event) => setForm({ ...form, tag: event.target.value })} placeholder="الأكثر طلباً" /></label></div><label>صورة المنتج<input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingImage} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadImage(file); event.currentTarget.value = ""; }} />{previewUrl && <img src={previewUrl} alt="معاينة صورة المنتج" className="product-image-preview" />}{uploadingImage && <small>جارٍ رفع الصورة...</small>}{imageError && <small className="image-upload-error">{imageError}</small>}</label><label>رابط الصورة<input value={form.image} onChange={(event) => { setForm({ ...form, image: event.target.value }); setPreviewUrl(event.target.value); }} placeholder="/manus-storage/..." /></label><div className="form-grid-3"><label>الكمية<input required type="number" min={0} value={form.stockQuantity} onChange={(event) => setForm({ ...form, stockQuantity: Number(event.target.value) })} /></label><label>حد التنبيه<input required type="number" min={0} value={form.lowStockThreshold} onChange={(event) => setForm({ ...form, lowStockThreshold: Number(event.target.value) })} /></label><label>الترتيب<input required type="number" min={0} value={form.sortOrder} onChange={(event) => setForm({ ...form, sortOrder: Number(event.target.value) })} /></label></div><div className="form-grid-2"><label>رمز العرض<input required value={form.emoji} onChange={(event) => setForm({ ...form, emoji: event.target.value })} /></label><label>نمط البطاقة<input required value={form.art} onChange={(event) => setForm({ ...form, art: event.target.value })} /></label></div><label className="admin-checkbox"><input type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} /> إظهار المنتج في واجهة المتجر</label><button className="admin-primary form-submit" disabled={busy || uploadingImage} type="submit"><Save size={17} />{uploadingImage ? "جارٍ رفع الصورة..." : busy ? "جارٍ الحفظ..." : "حفظ المنتج"}</button></form></div>;
 }
 
 function CategoryFormPanel({ form, setForm, editing, busy, onSubmit, onClose }: { form: CategoryForm; setForm: React.Dispatch<React.SetStateAction<CategoryForm>>; editing: boolean; busy: boolean; onSubmit: (event: React.FormEvent) => void; onClose: () => void }) {

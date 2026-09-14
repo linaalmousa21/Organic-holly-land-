@@ -323,3 +323,20 @@ h1 em, h2 em { font-style: normal; color: #6e8c45; }
 
 .product-card.is-out-of-stock { opacity: .7; }.product-card.is-out-of-stock .product-art img { filter: grayscale(.3) saturate(.55); }.product-bottom button:disabled { color: #a07b72; cursor: not-allowed; }
 .admin-category-actions { position: absolute; left: 13px; top: 13px; display: flex; gap: 4px; }.admin-category-actions .admin-icon-btn { position: static; }.admin-category-actions .danger:hover { color: #b9635b; background: #fbefeb; border-color: #e2bbb1; }
+
+.product-image-preview {
+  display: block;
+  width: 128px;
+  height: 128px;
+  object-fit: cover;
+  margin-top: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(31, 68, 51, 0.18);
+  background: #f4f1e8;
+}
+
+.image-upload-error {
+  display: block;
+  margin-top: 6px;
+  color: #a33f2d;
+}
