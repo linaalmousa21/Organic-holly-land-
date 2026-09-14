@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
+import { compressImageForUpload } from "@/lib/compress-image";
 
 type ProductRow = {
   id: number; categoryId: number; name: string; subtitle: string; price: string; unitLabel: string;
@@ -178,8 +179,9 @@ function ProductFormPanel({ form, setForm, categories, editing, busy, onSubmit, 
     setImageError("");
     setUploadingImage(true);
     try {
+      const compressedFile = await compressImageForUpload(file);
       const body = new FormData();
-      body.append("image", file);
+      body.append("image", compressedFile);
       const response = await fetch("/api/admin/product-image", { method: "POST", body, credentials: "include" });
       const payload = await response.json().catch(() => ({})) as { url?: string; error?: string };
       if (!response.ok || !payload.url) throw new Error(payload.error || "تعذر رفع الصورة");
