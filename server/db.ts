@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, categories, customers, orderItems, orders, products, users } from "../drizzle/schema";
+import { InsertUser, categories, customers, orderItems, orders, payments, products, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -329,6 +329,51 @@ export async function getOrdersForUser(userId: number) {
     createdAt: orders.createdAt,
   }).from(orders).innerJoin(customers, eq(orders.customerId, customers.id))
     .where(eq(customers.userId, userId)).orderBy(desc(orders.createdAt));
+}
+
+/** Creates a pending HyperPay order without committing inventory. */
+export async function createPendingOrder(input: CheckoutInput, userId?: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  const totals = await calculateOrderFromDatabase(input);
+  const orderNumber = makeOrderNumber();
+
+  return db.transaction(async (tx) => {
+    const customerResult = await tx.insert(customers).values({
+      userId, name: input.name.trim(), email: input.email.trim().toLowerCase(),
+      phone: input.phone.trim(), address: input.address.trim(), city: input.city.trim(),
+      notes: input.notes?.trim() || null,
+    });
+    const customerId = Number(customerResult[0].insertId);
+    const orderResult = await tx.insert(orders).values({
+      orderNumber, customerId, status: "pending", paymentStatus: "pending", currency: "JOD",
+      subtotal: totals.subtotal.toFixed(2), shippingFee: totals.shippingFee.toFixed(2), total: totals.total.toFixed(2),
+      customerName: input.name.trim(), customerEmail: input.email.trim().toLowerCase(), customerPhone: input.phone.trim(),
+      shippingAddress: input.address.trim(), shippingCity: input.city.trim(),
+    });
+    const orderId = Number(orderResult[0].insertId);
+    await tx.insert(orderItems).values(totals.items.map((item) => ({
+      orderId, productId: item.productId, productName: item.productName, quantity: item.quantity,
+      unitPrice: item.unitPrice.toFixed(2), lineTotal: item.lineTotal.toFixed(2),
+    })));
+    return { orderId, orderNumber, ...totals, paymentStatus: "pending" as const, currency: "JOD" as const };
+  });
+}
+
+export async function createPaymentAttempt(input: { orderId: number; amount: number; currency: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  const result = await db.insert(payments).values({
+    orderId: input.orderId, provider: "hyperpay", amount: input.amount.toFixed(2), currency: input.currency, status: "created",
+  });
+  return { paymentId: Number(result[0].insertId) };
+}
+
+export async function updatePaymentCheckout(input: { paymentId: number; checkoutId: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.update(payments).set({ checkoutId: input.checkoutId, status: "pending", updatedAt: new Date() }).where(eq(payments.id, input.paymentId));
+  return { paymentId: input.paymentId, checkoutId: input.checkoutId, status: "pending" as const };
 }
 
 export async function getAllOrders() {

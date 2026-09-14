@@ -2,8 +2,11 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { archiveProduct, calculateOrderFromDatabase, calculateShipping, createCategory, createProduct, createOrder, deleteCategory, getAdminCatalog, getAdminCategories, getAllOrders, getCatalog, getCategories, getOrdersForUser, updateCategory, updateOrderStatus, updateProduct } from "./db";
+import { archiveProduct, calculateOrderFromDatabase, calculateShipping, createCategory, createProduct, createOrder, createPendingOrder, createPaymentAttempt, deleteCategory, getAdminCatalog, getAdminCategories, getAllOrders, getCatalog, getCategories, getOrdersForUser, updateCategory, updateOrderStatus, updatePaymentCheckout, updateProduct } from "./db";
+import { ENV } from "./_core/env";
+import { prepareHyperPayCheckout } from "./payments/hyperpay";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 
 const checkoutItem = z.object({
   productId: z.number().int().positive(),
@@ -54,6 +57,34 @@ export const appRouter = router({
         total: order.total,
         shippingLabel: calculateShipping(input.city).label,
         currency: "JOD" as const,
+        paymentStatus: order.paymentStatus,
+      };
+    }),
+    createPendingPayment: publicProcedure.input(checkoutInput).mutation(async ({ ctx, input }) => {
+      if (!ENV.hyperpayEntityId || !ENV.hyperpayAccessToken) {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "HyperPay is not configured on the server" });
+      }
+      const order = await createPendingOrder(input, ctx.user?.id);
+      const payment = await createPaymentAttempt({ orderId: order.orderId, amount: order.total, currency: order.currency });
+      const checkout = await prepareHyperPayCheckout({
+        baseUrl: ENV.hyperpayBaseUrl,
+        entityId: ENV.hyperpayEntityId,
+        accessToken: ENV.hyperpayAccessToken,
+        currency: ENV.hyperpayCurrency,
+        paymentType: ENV.hyperpayPaymentType,
+      }, { amount: order.total, currency: order.currency, paymentType: ENV.hyperpayPaymentType });
+      await updatePaymentCheckout({ paymentId: payment.paymentId, checkoutId: checkout.checkoutId });
+      return {
+        success: true as const,
+        orderId: order.orderId,
+        orderNumber: order.orderNumber,
+        paymentId: payment.paymentId,
+        checkoutId: checkout.checkoutId,
+        integrity: checkout.integrity,
+        subtotal: order.subtotal,
+        shippingFee: order.shippingFee,
+        total: order.total,
+        currency: order.currency,
         paymentStatus: order.paymentStatus,
       };
     }),

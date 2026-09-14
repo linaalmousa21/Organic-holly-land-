@@ -50,6 +50,22 @@ export const orders = mysqlTable("orders", {
   id: int("id").autoincrement().primaryKey(), orderNumber: varchar("orderNumber", { length: 32 }).notNull().unique(), customerId: int("customerId").notNull(), status: mysqlEnum("status", ["pending", "confirmed", "shipped", "cancelled"]).default("pending").notNull(), paymentStatus: mysqlEnum("paymentStatus", ["pending", "paid", "failed"]).default("pending").notNull(), currency: varchar("currency", { length: 3 }).default("JOD").notNull(), subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(), shippingFee: decimal("shippingFee", { precision: 10, scale: 2 }).default("0.00").notNull(), total: decimal("total", { precision: 10, scale: 2 }).notNull(), customerName: varchar("customerName", { length: 160 }).notNull(), customerEmail: varchar("customerEmail", { length: 320 }).notNull(), customerPhone: varchar("customerPhone", { length: 40 }).notNull(), shippingAddress: text("shippingAddress").notNull(), shippingCity: varchar("shippingCity", { length: 100 }).notNull(), createdAt: timestamp("createdAt").defaultNow().notNull(), updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const payments = mysqlTable("payments", {
+  id: int("id").autoincrement().primaryKey(),
+  orderId: int("orderId").notNull(),
+  provider: varchar("provider", { length: 40 }).default("hyperpay").notNull(),
+  checkoutId: varchar("checkoutId", { length: 160 }),
+  resourcePath: varchar("resourcePath", { length: 500 }),
+  paymentId: varchar("paymentId", { length: 160 }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull(),
+  status: mysqlEnum("status", ["created", "pending", "paid", "failed", "cancelled", "refunded"]).default("created").notNull(),
+  resultCode: varchar("resultCode", { length: 40 }),
+  resultDescription: text("resultDescription"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export const orderItems = mysqlTable("orderItems", {
   id: int("id").autoincrement().primaryKey(), orderId: int("orderId").notNull(), productId: int("productId").notNull(), productName: varchar("productName", { length: 180 }).notNull(), quantity: int("quantity").notNull(), unitPrice: decimal("unitPrice", { precision: 10, scale: 2 }).notNull(), lineTotal: decimal("lineTotal", { precision: 10, scale: 2 }).notNull(),
 });
@@ -60,4 +76,5 @@ export type Category = typeof categories.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type Order = typeof orders.$inferSelect;
+export type Payment = typeof payments.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
