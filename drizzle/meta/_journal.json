@@ -43,6 +43,13 @@
       "when": 1789420235759,
       "tag": "0005_tan_beyonder",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1789577709612,
+      "tag": "0006_careful_selene",
+      "breakpoints": true
     }
   ]
 }

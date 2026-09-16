@@ -27,7 +27,9 @@ const orderStatus = z.enum(["pending", "confirmed", "shipped", "cancelled"]);
 const productInput = z.object({
   categoryId: z.number().int().positive(), name: z.string().trim().min(2).max(180), subtitle: z.string().trim().min(2).max(255),
   price: z.string().regex(/^\d+(\.\d{1,2})?$/), unitLabel: z.string().trim().min(1).max(60), tag: z.string().trim().max(80).optional(),
-  image: z.string().trim().max(500).optional(), art: z.string().trim().min(1).max(60), emoji: z.string().trim().min(1).max(8),
+  image: z.string().trim().max(500).optional(),
+  images: z.array(z.object({ url: z.string().trim().max(500), storageKey: z.string().trim().max(500), sortOrder: z.number().int().min(0), isPrimary: z.boolean() })).max(20).optional(),
+  art: z.string().trim().min(1).max(60), emoji: z.string().trim().min(1).max(8),
   stockQuantity: z.number().int().min(0).max(100000), lowStockThreshold: z.number().int().min(0).max(100000), sortOrder: z.number().int().min(0).max(100000), isActive: z.boolean().optional().default(true),
 });
 const categoryInput = z.object({ name: z.string().trim().min(2).max(100), note: z.string().trim().min(2).max(180), emoji: z.string().trim().min(1).max(8), sortOrder: z.number().int().min(0).max(100000), isFeatured: z.boolean() });

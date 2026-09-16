@@ -340,3 +340,45 @@ h1 em, h2 em { font-style: normal; color: #6e8c45; }
   margin-top: 6px;
   color: #a33f2d;
 }
+
+.product-gallery-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.gallery-editor-item {
+  width: 112px;
+  padding: 6px;
+  border: 1px solid #d6dccb;
+  background: #fffdf6;
+  border-radius: 10px;
+}
+
+.gallery-editor-item.primary {
+  border: 2px solid #183c2e;
+  box-shadow: 0 0 0 2px #c9f23d;
+}
+
+.gallery-editor-item img {
+  width: 100px;
+  height: 84px;
+  object-fit: cover;
+  display: block;
+  border-radius: 6px;
+  margin-bottom: 5px;
+}
+
+.gallery-editor-item button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #183c2e;
+  font-size: 9px;
+  padding: 3px 0;
+}
+
+.gallery-editor-item button:last-child {
+  color: #a33f2d;
+}

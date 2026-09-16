@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, categories, customers, orderItems, orders, payments, products, users } from "../drizzle/schema";
+import { InsertUser, categories, customers, orderItems, orders, payments, productImages, products, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -57,10 +57,17 @@ export async function getUserByOpenId(openId: string) {
   return result[0];
 }
 
+async function attachProductImages<T extends { id: number; image: string | null }>(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, rows: T[]) {
+  if (!rows.length) return rows.map((row) => ({ ...row, images: [] as typeof productImages.$inferSelect[] }));
+  const ids = rows.map((row) => row.id);
+  const images = await db.select().from(productImages).where(sql`productId in (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})`).orderBy(asc(productImages.sortOrder));
+  return rows.map((row) => ({ ...row, images: images.filter((image) => image.productId === row.id) }));
+}
+
 export async function getCatalog() {
   const db = await getDb();
   if (!db) return [];
-  return db.select({
+  const rows = await db.select({
     id: products.id,
     name: products.name,
     subtitle: products.subtitle,
@@ -78,6 +85,7 @@ export async function getCatalog() {
     categoryIsFeatured: categories.isFeatured,
     sortOrder: products.sortOrder,
   }).from(products).innerJoin(categories, eq(products.categoryId, categories.id)).where(eq(products.isActive, true)).orderBy(asc(products.sortOrder));
+  return attachProductImages(db, rows);
 }
 
 export async function getCategories() {
@@ -90,13 +98,14 @@ export async function getCategories() {
 export async function getAdminCatalog() {
   const db = await getDb();
   if (!db) return [];
-  return db.select({
+  const rows = await db.select({
     id: products.id, categoryId: products.categoryId, name: products.name, subtitle: products.subtitle,
     price: products.price, unitLabel: products.unitLabel, tag: products.tag, image: products.image,
     art: products.art, emoji: products.emoji, stockQuantity: products.stockQuantity,
     lowStockThreshold: products.lowStockThreshold, sortOrder: products.sortOrder, isActive: products.isActive,
     category: categories.name,
   }).from(products).innerJoin(categories, eq(products.categoryId, categories.id)).orderBy(asc(products.sortOrder));
+  return attachProductImages(db, rows);
 }
 
 export async function getAdminCategories() {
@@ -108,20 +117,28 @@ export async function getAdminCategories() {
 export async function createProduct(input: {
   categoryId: number; name: string; subtitle: string; price: string; unitLabel: string; tag?: string;
   image?: string; art: string; emoji: string; stockQuantity: number; lowStockThreshold: number; sortOrder: number; isActive: boolean;
+  images?: Array<{ url: string; storageKey: string; sortOrder: number; isPrimary: boolean }>;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
   const result = await db.insert(products).values({ ...input, tag: input.tag || null, image: input.image || null });
-  return { id: Number(result[0].insertId) };
+  const id = Number(result[0].insertId);
+  if (input.images?.length) await db.insert(productImages).values(input.images.map((image) => ({ ...image, productId: id })));
+  return { id };
 }
 
 export async function updateProduct(id: number, input: {
   categoryId: number; name: string; subtitle: string; price: string; unitLabel: string; tag?: string;
   image?: string; art: string; emoji: string; stockQuantity: number; lowStockThreshold: number; sortOrder: number; isActive: boolean;
+  images?: Array<{ url: string; storageKey: string; sortOrder: number; isPrimary: boolean }>;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
   await db.update(products).set({ ...input, tag: input.tag || null, image: input.image || null, updatedAt: new Date() }).where(eq(products.id, id));
+  if (input.images) {
+    await db.delete(productImages).where(eq(productImages.productId, id));
+    if (input.images.length) await db.insert(productImages).values(input.images.map((image) => ({ ...image, productId: id })));
+  }
   return { id };
 }
 

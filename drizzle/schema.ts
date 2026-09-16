@@ -42,6 +42,16 @@ export const products = mysqlTable("products", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const productImages = mysqlTable("productImages", {
+  id: int("id").autoincrement().primaryKey(),
+  productId: int("productId").notNull(),
+  url: varchar("url", { length: 500 }).notNull(),
+  storageKey: varchar("storageKey", { length: 500 }).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  isPrimary: boolean("isPrimary").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const customers = mysqlTable("customers", {
   id: int("id").autoincrement().primaryKey(), userId: int("userId"), name: varchar("name", { length: 160 }).notNull(), email: varchar("email", { length: 320 }).notNull(), phone: varchar("phone", { length: 40 }).notNull(), address: text("address").notNull(), city: varchar("city", { length: 100 }).notNull(), notes: text("notes"), createdAt: timestamp("createdAt").defaultNow().notNull(), updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -74,6 +84,7 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Category = typeof categories.$inferSelect;
 export type Product = typeof products.$inferSelect;
+export type ProductImage = typeof productImages.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type Payment = typeof payments.$inferSelect;

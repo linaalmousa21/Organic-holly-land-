@@ -26,14 +26,15 @@ type ProductRow = {
   id: number; categoryId: number; name: string; subtitle: string; price: string; unitLabel: string;
   tag: string | null; image: string | null; art: string; emoji: string; stockQuantity: number;
   lowStockThreshold: number; sortOrder: number; isActive: boolean; category: string;
+  images: Array<{ id?: number; url: string; storageKey: string; sortOrder: number; isPrimary: boolean }>;
 };
 type CategoryRow = { id: number; name: string; note: string; emoji: string; sortOrder: number; isFeatured: boolean };
-type ProductForm = Omit<ProductRow, "id" | "category" | "tag" | "image" | "isActive"> & { tag: string; image: string; isActive: boolean };
+type ProductForm = Omit<ProductRow, "id" | "category" | "tag" | "image" | "isActive" | "images"> & { tag: string; image: string; isActive: boolean; images: Array<{ url: string; storageKey: string; sortOrder: number; isPrimary: boolean }> };
 type CategoryForm = Omit<CategoryRow, "id">;
 
 const emptyProduct: ProductForm = {
   categoryId: 0, name: "", subtitle: "", price: "", unitLabel: "", tag: "", image: "",
-  art: "olive-art", emoji: "🌿", stockQuantity: 0, lowStockThreshold: 5, sortOrder: 0, isActive: true,
+  art: "olive-art", emoji: "🌿", stockQuantity: 0, lowStockThreshold: 5, sortOrder: 0, isActive: true, images: [],
 };
 const emptyCategory: CategoryForm = { name: "", note: "", emoji: "🌿", sortOrder: 0, isFeatured: false };
 
@@ -72,7 +73,7 @@ export default function Admin() {
   function resetCategory() { setEditingCategoryId(null); setCategoryForm(emptyCategory); }
   function startEditProduct(product: ProductRow) {
     setEditingProductId(product.id);
-    setProductForm({ ...product, tag: product.tag ?? "", image: product.image ?? "" });
+    setProductForm({ ...product, tag: product.tag ?? "", image: product.image ?? "", images: product.images.map(({ id: _id, ...image }) => image) });
     setSection("products");
   }
   function startEditCategory(category: CategoryRow) {
@@ -86,7 +87,7 @@ export default function Admin() {
   function submitProduct(event: React.FormEvent) {
     event.preventDefault();
     if (!productForm.categoryId) return showNotice("اختر تصنيفاً للمنتج أولاً");
-    const input = { ...productForm, tag: productForm.tag || undefined, image: productForm.image || undefined };
+    const input = { ...productForm, tag: productForm.tag || undefined, image: productForm.image || undefined, images: productForm.images };
     if (editingProductId) updateProduct.mutate({ id: editingProductId, data: input });
     else createProduct.mutate(input);
   }
@@ -102,7 +103,7 @@ export default function Admin() {
     const next = Math.max(0, product.stockQuantity + delta);
     updateProduct.mutate({ id: product.id, data: {
       categoryId: product.categoryId, name: product.name, subtitle: product.subtitle, price: String(product.price), unitLabel: product.unitLabel,
-      tag: product.tag ?? undefined, image: product.image ?? undefined, art: product.art, emoji: product.emoji, stockQuantity: next,
+      tag: product.tag ?? undefined, image: product.image ?? undefined, images: product.images, art: product.art, emoji: product.emoji, stockQuantity: next,
       lowStockThreshold: product.lowStockThreshold, sortOrder: product.sortOrder, isActive: product.isActive,
     } });
   }
@@ -183,9 +184,13 @@ function ProductFormPanel({ form, setForm, categories, editing, busy, onSubmit, 
       const body = new FormData();
       body.append("image", compressedFile);
       const response = await fetch("/api/admin/product-image", { method: "POST", body, credentials: "include" });
-      const payload = await response.json().catch(() => ({})) as { url?: string; error?: string };
+      const payload = await response.json().catch(() => ({})) as { url?: string; key?: string; error?: string };
       if (!response.ok || !payload.url) throw new Error(payload.error || "تعذر رفع الصورة");
-      setForm((current) => ({ ...current, image: payload.url! }));
+      setForm((current) => {
+        const isPrimary = current.images.length === 0;
+        const image = { url: payload.url!, storageKey: payload.key || payload.url!, sortOrder: current.images.length, isPrimary };
+        return { ...current, image: isPrimary ? image.url : current.image, images: [...current.images, image] };
+      });
     } catch (error) {
       URL.revokeObjectURL(localUrl);
       setPreviewUrl(form.image || "");
@@ -195,7 +200,19 @@ function ProductFormPanel({ form, setForm, categories, editing, busy, onSubmit, 
     }
   }
 
-  return <div className="admin-form-panel"><div className="form-panel-head"><div><span className="admin-kicker">PRODUCT EDITOR</span><h2>{editing ? "تعديل المنتج" : "إضافة منتج"}</h2></div><button onClick={onClose} aria-label="إغلاق"><X size={18} /></button></div><form onSubmit={onSubmit} className="admin-form"><label>اسم المنتج<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="مثال: عسل جبلي خام" /></label><label>الوصف المختصر<input required value={form.subtitle} onChange={(event) => setForm({ ...form, subtitle: event.target.value })} /></label><div className="form-grid-2"><label>التصنيف<select required value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: Number(event.target.value) })}><option value={0}>اختر تصنيفاً</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.emoji} {category.name}</option>)}</select></label><label>السعر بالدينار<input required inputMode="decimal" pattern="^\d+(\.\d{1,2})?$" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="0.00" /></label></div><div className="form-grid-2"><label>الوحدة<input required value={form.unitLabel} onChange={(event) => setForm({ ...form, unitLabel: event.target.value })} placeholder="500 مل" /></label><label>الشارة<input value={form.tag} onChange={(event) => setForm({ ...form, tag: event.target.value })} placeholder="الأكثر طلباً" /></label></div><label>صورة المنتج<input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingImage} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadImage(file); event.currentTarget.value = ""; }} />{previewUrl && <img src={previewUrl} alt="معاينة صورة المنتج" className="product-image-preview" />}{uploadingImage && <small>جارٍ رفع الصورة...</small>}{imageError && <small className="image-upload-error">{imageError}</small>}</label><label>رابط الصورة<input value={form.image} onChange={(event) => { setForm({ ...form, image: event.target.value }); setPreviewUrl(event.target.value); }} placeholder="/manus-storage/..." /></label><div className="form-grid-3"><label>الكمية<input required type="number" min={0} value={form.stockQuantity} onChange={(event) => setForm({ ...form, stockQuantity: Number(event.target.value) })} /></label><label>حد التنبيه<input required type="number" min={0} value={form.lowStockThreshold} onChange={(event) => setForm({ ...form, lowStockThreshold: Number(event.target.value) })} /></label><label>الترتيب<input required type="number" min={0} value={form.sortOrder} onChange={(event) => setForm({ ...form, sortOrder: Number(event.target.value) })} /></label></div><div className="form-grid-2"><label>رمز العرض<input required value={form.emoji} onChange={(event) => setForm({ ...form, emoji: event.target.value })} /></label><label>نمط البطاقة<input required value={form.art} onChange={(event) => setForm({ ...form, art: event.target.value })} /></label></div><label className="admin-checkbox"><input type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} /> إظهار المنتج في واجهة المتجر</label><button className="admin-primary form-submit" disabled={busy || uploadingImage} type="submit"><Save size={17} />{uploadingImage ? "جارٍ رفع الصورة..." : busy ? "جارٍ الحفظ..." : "حفظ المنتج"}</button></form></div>;
+  function removeImage(index: number) {
+    const next = form.images.filter((_, imageIndex) => imageIndex !== index).map((image, imageIndex) => ({ ...image, sortOrder: imageIndex, isPrimary: imageIndex === 0 ? image.isPrimary || index === 0 : image.isPrimary }));
+    const primary = next.find((image) => image.isPrimary) ?? next[0];
+    setForm((current) => ({ ...current, images: next, image: primary?.url || "" }));
+  }
+
+  function setPrimaryImage(index: number) {
+    const next = form.images.map((image, imageIndex) => ({ ...image, isPrimary: imageIndex === index }));
+    setForm((current) => ({ ...current, images: next, image: next[index].url }));
+    setPreviewUrl(next[index].url);
+  }
+
+  return <div className="admin-form-panel"><div className="form-panel-head"><div><span className="admin-kicker">PRODUCT EDITOR</span><h2>{editing ? "تعديل المنتج" : "إضافة منتج"}</h2></div><button onClick={onClose} aria-label="إغلاق"><X size={18} /></button></div><form onSubmit={onSubmit} className="admin-form"><label>اسم المنتج<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="مثال: عسل جبلي خام" /></label><label>الوصف المختصر<input required value={form.subtitle} onChange={(event) => setForm({ ...form, subtitle: event.target.value })} /></label><div className="form-grid-2"><label>التصنيف<select required value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: Number(event.target.value) })}><option value={0}>اختر تصنيفاً</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.emoji} {category.name}</option>)}</select></label><label>السعر بالدينار<input required inputMode="decimal" pattern="^\d+(\.\d{1,2})?$" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="0.00" /></label></div><div className="form-grid-2"><label>الوحدة<input required value={form.unitLabel} onChange={(event) => setForm({ ...form, unitLabel: event.target.value })} placeholder="500 مل" /></label><label>الشارة<input value={form.tag} onChange={(event) => setForm({ ...form, tag: event.target.value })} placeholder="الأكثر طلباً" /></label></div><label>صور المنتج (يمكن اختيار عدة صور)<input type="file" multiple accept="image/jpeg,image/png,image/webp" disabled={uploadingImage} onChange={(event) => { const files = Array.from(event.target.files ?? []); files.forEach((file) => void uploadImage(file)); event.currentTarget.value = ""; }} />{previewUrl && <img src={previewUrl} alt="معاينة الصورة الرئيسية" className="product-image-preview" />}<div className="product-gallery-editor">{form.images.map((image, index) => <div className={`gallery-editor-item ${image.isPrimary ? "primary" : ""}`} key={`${image.url}-${index}`}><img src={image.url} alt={`صورة ${index + 1}`} /><button type="button" onClick={() => setPrimaryImage(index)}>{image.isPrimary ? "الصورة الرئيسية" : "تعيين كرئيسية"}</button><button type="button" onClick={() => removeImage(index)} aria-label="حذف الصورة">حذف</button></div>)}</div>{uploadingImage && <small>جارٍ ضغط ورفع الصور...</small>}{imageError && <small className="image-upload-error">{imageError}</small>}</label><label>رابط الصورة الرئيسية<input value={form.image} onChange={(event) => { setForm({ ...form, image: event.target.value }); setPreviewUrl(event.target.value); }} placeholder="/manus-storage/..." /></label><div className="form-grid-3"><label>الكمية<input required type="number" min={0} value={form.stockQuantity} onChange={(event) => setForm({ ...form, stockQuantity: Number(event.target.value) })} /></label><label>حد التنبيه<input required type="number" min={0} value={form.lowStockThreshold} onChange={(event) => setForm({ ...form, lowStockThreshold: Number(event.target.value) })} /></label><label>الترتيب<input required type="number" min={0} value={form.sortOrder} onChange={(event) => setForm({ ...form, sortOrder: Number(event.target.value) })} /></label></div><div className="form-grid-2"><label>رمز العرض<input required value={form.emoji} onChange={(event) => setForm({ ...form, emoji: event.target.value })} /></label><label>نمط البطاقة<input required value={form.art} onChange={(event) => setForm({ ...form, art: event.target.value })} /></label></div><label className="admin-checkbox"><input type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} /> إظهار المنتج في واجهة المتجر</label><button className="admin-primary form-submit" disabled={busy || uploadingImage} type="submit"><Save size={17} />{uploadingImage ? "جارٍ رفع الصور..." : busy ? "جارٍ الحفظ..." : "حفظ المنتج"}</button></form></div>;
 }
 
 function CategoryFormPanel({ form, setForm, editing, busy, onSubmit, onClose }: { form: CategoryForm; setForm: React.Dispatch<React.SetStateAction<CategoryForm>>; editing: boolean; busy: boolean; onSubmit: (event: React.FormEvent) => void; onClose: () => void }) {
