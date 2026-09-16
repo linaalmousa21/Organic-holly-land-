@@ -6,6 +6,8 @@ import {
   ArrowUpLeft,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Heart,
   Leaf,
@@ -32,6 +34,7 @@ type Product = {
   unitLabel: string;
   stockQuantity: number;
   lowStockThreshold: number;
+  images?: Array<{ id: number; url: string; sortOrder: number; isPrimary: boolean }>;
 };
 
 const jordanLocations = [
@@ -65,6 +68,7 @@ export default function Home() {
     unitLabel: item.unitLabel,
     stockQuantity: item.stockQuantity,
     lowStockThreshold: item.lowStockThreshold,
+    images: item.images ?? [],
   })), [catalogQuery.data]);
   const categories = useMemo(() => ["التشكيلة كاملة", ...(categoriesQuery.data ?? []).map((category) => category.name)], [categoriesQuery.data]);
   const featuredCategories = useMemo(() => (categoriesQuery.data ?? []).filter((category) => category.isFeatured).map((category) => ({ name: category.name, note: category.note, emoji: category.emoji, filter: category.name })), [categoriesQuery.data]);
@@ -74,6 +78,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [checkout, setCheckout] = useState({ name: "", email: "", phone: "", address: "", city: "", notes: "" });
   const [confirmation, setConfirmation] = useState<{ orderNumber: string; total: number; shippingFee: number; shippingLabel: string } | null>(null);
   const quoteItems = useMemo(() => Object.values(cart.reduce<Record<number, { productId: number; quantity: number }>>((acc, product) => { acc[product.id] ??= { productId: product.id, quantity: 0 }; acc[product.id].quantity += 1; return acc; }, {})), [cart]);
@@ -228,7 +233,7 @@ export default function Home() {
             {catalogQuery.isLoading && <div className="empty-products"><Leaf size={25} /><p>جارٍ تحميل خيراتنا من قاعدة البيانات...</p></div>}
             {catalogQuery.isError && <div className="empty-products"><Leaf size={25} /><p>تعذر تحميل المنتجات الآن. حاول تحديث الصفحة.</p></div>}
             {!catalogQuery.isLoading && !catalogQuery.isError && <div className="product-grid">
-              {filteredProducts.map((product) => <ProductCard key={product.id} product={product} onAdd={() => addToCart(product)} />)}
+              {filteredProducts.map((product) => <ProductCard key={product.id} product={product} onAdd={() => addToCart(product)} onDetails={() => setSelectedProduct(product)} />)}
             </div>}
             {!catalogQuery.isLoading && !catalogQuery.isError && filteredProducts.length === 0 && <div className="empty-products"><Leaf size={25} /><p>لا توجد نتائج مطابقة بعد. جرّب كلمة أخرى.</p></div>}
             <p className="preview-price-note">* الأسعار المعروضة تجريبية لهذه المعاينة، ويمكن تعديلها عند اعتماد المتجر.</p>
@@ -302,22 +307,31 @@ export default function Home() {
       </aside></div>}
 
       {confirmation && <div className="confirmation-overlay" role="dialog" aria-modal="true" aria-labelledby="confirmation-title"><div className="confirmation-card"><span className="confirmation-icon"><Check size={25} /></span><div className="eyebrow"><span></span> تم استلام الطلب</div><h3 id="confirmation-title">شكراً لثقتك بنا.</h3><p>تم حفظ طلبك بنجاح، وسنتواصل معك لتأكيد التوصيل والدفع.</p><div className="confirmation-details"><span>رقم الطلب <b>{confirmation.orderNumber}</b></span><span>التوصيل إلى <b>{confirmation.shippingLabel}</b></span><span>الإجمالي <b>{confirmation.total.toFixed(2)} د.أ</b></span><span>حالة الدفع <b>بانتظار الدفع</b></span></div><button className="primary-button" onClick={() => setConfirmation(null)}>العودة للمتجر <ArrowLeft size={17} /></button></div></div>}
+      {selectedProduct && <ProductDetails product={selectedProduct} onClose={() => setSelectedProduct(null)} onAdd={() => { addToCart(selectedProduct); setSelectedProduct(null); }} />}
       {toast && <div className="toast"><Check size={16} /> {toast}</div>}
     </div>
   );
 }
 
-function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }) {
+function ProductDetails({ product, onClose, onAdd }: { product: Product; onClose: () => void; onAdd: () => void }) {
+  const gallery = product.images?.length ? [...product.images].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.sortOrder - b.sortOrder) : product.image ? [{ id: 0, url: product.image, sortOrder: 0, isPrimary: true }] : [];
+  const [activeIndex, setActiveIndex] = useState(0);
+  const activeImage = gallery[activeIndex];
+  const move = (delta: number) => setActiveIndex((current) => gallery.length ? (current + delta + gallery.length) % gallery.length : 0);
+  return <div className="product-details-overlay" role="dialog" aria-modal="true" aria-labelledby="product-details-title" onClick={onClose}><div className="product-details-card" onClick={(event) => event.stopPropagation()}><button className="product-details-close" type="button" onClick={onClose} aria-label="إغلاق"><X size={20} /></button><div className="product-details-gallery">{activeImage ? <img src={activeImage.url} alt={product.name} /> : <span className="art-emoji">{product.emoji}</span>}{gallery.length > 1 && <><button type="button" className="gallery-nav gallery-prev" onClick={() => move(-1)} aria-label="الصورة السابقة"><ChevronRight size={22} /></button><button type="button" className="gallery-nav gallery-next" onClick={() => move(1)} aria-label="الصورة التالية"><ChevronLeft size={22} /></button></>}<div className="gallery-thumbnails">{gallery.map((image, index) => <button type="button" className={index === activeIndex ? "active" : ""} key={image.id || image.url} onClick={() => setActiveIndex(index)}><img src={image.url} alt={`${product.name} ${index + 1}`} /></button>)}</div></div><div className="product-details-copy"><span className="eyebrow"><span></span>{product.category}</span><h2 id="product-details-title">{product.name}</h2><p>{product.subtitle}</p><strong>{product.price}</strong><button type="button" className="primary-button" onClick={onAdd} disabled={product.stockQuantity < 1}>{product.stockQuantity < 1 ? "نفد مؤقتاً" : "أضف للسلة"}<Plus size={17} /></button></div></div></div>;
+}
+
+function ProductCard({ product, onAdd, onDetails }: { product: Product; onAdd: () => void; onDetails: () => void }) {
   const outOfStock = product.stockQuantity < 1;
   const lowStock = !outOfStock && product.stockQuantity <= product.lowStockThreshold;
   return <article className={`product-card ${outOfStock ? "is-out-of-stock" : ""}`}>
-    <div className={`product-art ${product.art}`}>
+    <button type="button" className={`product-art ${product.art}`} onClick={onDetails} aria-label={`عرض تفاصيل ${product.name}`}>
       {product.image ? <img src={product.image} alt="" /> : <span className="art-emoji">{product.emoji}</span>}
       {product.tag && <span className="product-tag">{product.tag}</span>}
       <button className="wishlist" aria-label={`إضافة ${product.name} للمفضلة`}><Heart size={17} /></button>
       <div className="art-grain"></div>
-    </div>
-    <div className="product-info"><div><h3>{product.name}</h3><p>{product.subtitle}</p></div><span className="product-arrow"><ArrowUpLeft size={17} /></span></div>
+    </button>
+    <button type="button" className="product-info" onClick={onDetails}><div><h3>{product.name}</h3><p>{product.subtitle}</p></div><span className="product-arrow"><ArrowUpLeft size={17} /></span></button>
     <div className="product-bottom"><strong>{product.price}</strong><button onClick={onAdd} disabled={outOfStock}>{outOfStock ? "نفد مؤقتاً" : <><Plus size={15} /> {lowStock ? `متبقي ${product.stockQuantity}` : "أضف للسلة"}</>}</button></div>
   </article>;
 }
