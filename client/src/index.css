@@ -437,3 +437,9 @@ h1 em, h2 em { font-style: normal; color: #6e8c45; }
 .video-thumb b { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; background: rgba(24,60,46,.35); font-size: 18px; }
 .product-details-gallery > video { width: 100%; height: 325px; object-fit: contain; background: #183c2e; }
 @media (max-width: 680px) { .product-details-gallery > video { height: 220px; } }
+
+.product-art > video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.product-video-controls { position: absolute; right: 12px; bottom: 12px; z-index: 3; display: flex; gap: 6px; direction: rtl; }
+.product-video-controls button { border: 1px solid rgba(255,255,255,.7); border-radius: 999px; padding: 7px 10px; background: rgba(24,60,46,.9); color: #fff; font: inherit; font-size: 11px; cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,.16); }
+.product-video-controls button:hover, .product-video-controls button:focus-visible { background: #c9f23d; color: #183c2e; outline: 2px solid #fff; outline-offset: 2px; }
+.product-video-controls button:active { transform: scale(.97); }

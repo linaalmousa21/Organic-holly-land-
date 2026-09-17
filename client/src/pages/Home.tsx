@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react";
 import {
@@ -324,9 +324,51 @@ function ProductDetails({ product, onClose, onAdd }: { product: Product; onClose
 function ProductCard({ product, onAdd, onDetails }: { product: Product; onAdd: () => void; onDetails: () => void }) {
   const outOfStock = product.stockQuantity < 1;
   const lowStock = !outOfStock && product.stockQuantity <= product.lowStockThreshold;
+  const video = product.images?.find((image) => image.mediaType === "video");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element || !video) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        element.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      } else {
+        element.pause();
+        setIsPlaying(false);
+      }
+    }, { threshold: 0.55 });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [video]);
+
+  function toggleSound(event: React.MouseEvent) {
+    event.stopPropagation();
+    const element = videoRef.current;
+    if (!element) return;
+    const nextMuted = !element.muted;
+    element.muted = nextMuted;
+    setIsMuted(nextMuted);
+    if (!nextMuted) void element.play().then(() => setIsPlaying(true));
+  }
+
+  function togglePlayback(event: React.MouseEvent) {
+    event.stopPropagation();
+    const element = videoRef.current;
+    if (!element) return;
+    if (element.paused) {
+      void element.play().then(() => setIsPlaying(true));
+    } else {
+      element.pause();
+      setIsPlaying(false);
+    }
+  }
+
   return <article className={`product-card ${outOfStock ? "is-out-of-stock" : ""}`}>
     <button type="button" className={`product-art ${product.art}`} onClick={onDetails} aria-label={`عرض تفاصيل ${product.name}`}>
-      {product.image ? <img src={product.image} alt="" /> : <span className="art-emoji">{product.emoji}</span>}
+      {video ? <><video ref={videoRef} src={video.url} muted={isMuted} loop playsInline preload="metadata" aria-label={`فيديو ${product.name}`} /> <span className="product-video-controls" onClick={(event) => event.stopPropagation()}><button type="button" onClick={toggleSound} aria-label={isMuted ? "تشغيل الصوت" : "كتم الصوت"}>{isMuted ? "🔇 الصوت" : "🔊 الصوت"}</button><button type="button" onClick={togglePlayback} aria-label={isPlaying ? "إيقاف الفيديو" : "تشغيل الفيديو"}>{isPlaying ? "إيقاف" : "تشغيل"}</button></span></> : product.image ? <img src={product.image} alt="" /> : <span className="art-emoji">{product.emoji}</span>}
       {product.tag && <span className="product-tag">{product.tag}</span>}
       <button className="wishlist" aria-label={`إضافة ${product.name} للمفضلة`}><Heart size={17} /></button>
       <div className="art-grain"></div>
