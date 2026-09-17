@@ -50,6 +50,13 @@
       "when": 1789577709612,
       "tag": "0006_careful_selene",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1789649174144,
+      "tag": "0007_peaceful_cerise",
+      "breakpoints": true
     }
   ]
 }

@@ -117,27 +117,29 @@ export async function getAdminCategories() {
 export async function createProduct(input: {
   categoryId: number; name: string; subtitle: string; price: string; unitLabel: string; tag?: string;
   image?: string; art: string; emoji: string; stockQuantity: number; lowStockThreshold: number; sortOrder: number; isActive: boolean;
-  images?: Array<{ url: string; storageKey: string; sortOrder: number; isPrimary: boolean }>;
+  images?: Array<{ url: string; storageKey: string; mediaType?: "image" | "video"; sortOrder: number; isPrimary: boolean }>;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
-  const result = await db.insert(products).values({ ...input, tag: input.tag || null, image: input.image || null });
+  const { images, ...productInput } = input;
+  const result = await db.insert(products).values({ ...productInput, tag: productInput.tag || null, image: productInput.image || null });
   const id = Number(result[0].insertId);
-  if (input.images?.length) await db.insert(productImages).values(input.images.map((image) => ({ ...image, productId: id })));
+  if (images?.length) await db.insert(productImages).values(images.map((image) => ({ ...image, productId: id })));
   return { id };
 }
 
 export async function updateProduct(id: number, input: {
   categoryId: number; name: string; subtitle: string; price: string; unitLabel: string; tag?: string;
   image?: string; art: string; emoji: string; stockQuantity: number; lowStockThreshold: number; sortOrder: number; isActive: boolean;
-  images?: Array<{ url: string; storageKey: string; sortOrder: number; isPrimary: boolean }>;
+  images?: Array<{ url: string; storageKey: string; mediaType?: "image" | "video"; sortOrder: number; isPrimary: boolean }>;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
-  await db.update(products).set({ ...input, tag: input.tag || null, image: input.image || null, updatedAt: new Date() }).where(eq(products.id, id));
-  if (input.images) {
+  const { images, ...productInput } = input;
+  await db.update(products).set({ ...productInput, tag: productInput.tag || null, image: productInput.image || null, updatedAt: new Date() }).where(eq(products.id, id));
+  if (images) {
     await db.delete(productImages).where(eq(productImages.productId, id));
-    if (input.images.length) await db.insert(productImages).values(input.images.map((image) => ({ ...image, productId: id })));
+    if (images.length) await db.insert(productImages).values(images.map((image) => ({ ...image, productId: id })));
   }
   return { id };
 }

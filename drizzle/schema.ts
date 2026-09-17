@@ -47,6 +47,7 @@ export const productImages = mysqlTable("productImages", {
   productId: int("productId").notNull(),
   url: varchar("url", { length: 500 }).notNull(),
   storageKey: varchar("storageKey", { length: 500 }).notNull(),
+  mediaType: mysqlEnum("mediaType", ["image", "video"]).default("image").notNull(),
   sortOrder: int("sortOrder").default(0).notNull(),
   isPrimary: boolean("isPrimary").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

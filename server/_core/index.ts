@@ -11,6 +11,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { storagePut } from "../storage";
 import { makeProductImageKey, PRODUCT_IMAGE_MAX_BYTES, PRODUCT_IMAGE_MIME_TYPES, validateProductImage } from "../product-image-upload";
+import { makeProductMediaKey, PRODUCT_VIDEO_MAX_BYTES, PRODUCT_VIDEO_MIME_TYPES, validateProductVideo } from "../product-media-upload";
 
 type AuthenticatedUser = Awaited<ReturnType<typeof createContext>>["user"];
 
@@ -18,6 +19,11 @@ const productImageUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: PRODUCT_IMAGE_MAX_BYTES, files: 1, fields: 4 },
   fileFilter: (_req, file, callback) => callback(null, PRODUCT_IMAGE_MIME_TYPES.has(file.mimetype)),
+});
+const productVideoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: PRODUCT_VIDEO_MAX_BYTES, files: 1, fields: 4 },
+  fileFilter: (_req, file, callback) => callback(null, PRODUCT_VIDEO_MIME_TYPES.has(file.mimetype)),
 });
 
 async function getRouteUser(req: Request, res: Response): Promise<AuthenticatedUser> {
@@ -45,6 +51,23 @@ function registerProductImageRoute(app: express.Express) {
       }
       console.error("[Product image upload] failed", error);
       return res.status(500).json({ error: "Image upload failed" });
+    }
+  });
+  app.post("/api/admin/product-video", productVideoUpload.single("video"), async (req, res) => {
+    try {
+      const user = await getRouteUser(req, res);
+      if (!user) return res.status(401).json({ error: "Authentication required" });
+      if (user.role !== "admin") return res.status(403).json({ error: "Admin role required" });
+      if (!req.file) return res.status(400).json({ error: "Upload one video in the video field" });
+      const validation = validateProductVideo(req.file);
+      if (!validation.ok) return res.status(415).json({ error: validation.message });
+      const key = makeProductMediaKey(user.id, req.file.originalname, req.file.mimetype);
+      const stored = await storagePut(key, req.file.buffer, req.file.mimetype);
+      return res.status(201).json({ url: stored.url, key: stored.key, contentType: req.file.mimetype, size: req.file.size });
+    } catch (error) {
+      if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") return res.status(413).json({ error: "Video must not exceed 20 MB" });
+      console.error("[Product video upload] failed", error);
+      return res.status(500).json({ error: "Video upload failed" });
     }
   });
 }
