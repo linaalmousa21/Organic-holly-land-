@@ -367,12 +367,12 @@ function ProductCard({ product, onAdd, onDetails }: { product: Product; onAdd: (
   }
 
   return <article className={`product-card ${outOfStock ? "is-out-of-stock" : ""}`}>
-    <button type="button" className={`product-art ${product.art}`} onClick={onDetails} aria-label={`عرض تفاصيل ${product.name}`}>
+    <div role="button" tabIndex={0} className={`product-art ${product.art}`} onClick={onDetails} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onDetails(); } }} aria-label={`عرض تفاصيل ${product.name}`}>
       {video ? <><video ref={videoRef} src={video.url} muted={isMuted} loop playsInline preload="metadata" aria-label={`فيديو ${product.name}`} /> <span className="product-video-controls" onClick={(event) => event.stopPropagation()}><button type="button" onClick={toggleSound} aria-label={isMuted ? "تشغيل الصوت" : "كتم الصوت"}>{isMuted ? "🔇 الصوت" : "🔊 الصوت"}</button><button type="button" onClick={togglePlayback} aria-label={isPlaying ? "إيقاف الفيديو" : "تشغيل الفيديو"}>{isPlaying ? "إيقاف" : "تشغيل"}</button></span></> : product.image ? <img src={product.image} alt="" /> : <span className="art-emoji">{product.emoji}</span>}
       {product.tag && <span className="product-tag">{product.tag}</span>}
       <button className="wishlist" aria-label={`إضافة ${product.name} للمفضلة`}><Heart size={17} /></button>
       <div className="art-grain"></div>
-    </button>
+    </div>
     <button type="button" className="product-info" onClick={onDetails}><div><h3>{product.name}</h3><p>{product.subtitle}</p></div><span className="product-arrow"><ArrowUpLeft size={17} /></span></button>
     <div className="product-bottom"><strong>{product.price}</strong><button onClick={onAdd} disabled={outOfStock}>{outOfStock ? "نفد مؤقتاً" : <><Plus size={15} /> {lowStock ? `متبقي ${product.stockQuantity}` : "أضف للسلة"}</>}</button></div>
   </article>;
