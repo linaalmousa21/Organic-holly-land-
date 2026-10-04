@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { InsertUser, categories, customers, orderItems, orders, payments, productImages, products, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -8,7 +9,8 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const client = postgres(process.env.DATABASE_URL, { ssl: "require", max: 10 });
+      _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -47,7 +49,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
   values.lastSignedIn ??= new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
-  await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+  await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
 }
 
 export async function getUserByOpenId(openId: string) {
@@ -122,8 +124,8 @@ export async function createProduct(input: {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
   const { images, ...productInput } = input;
-  const result = await db.insert(products).values({ ...productInput, tag: productInput.tag || null, image: productInput.image || null });
-  const id = Number(result[0].insertId);
+  const result = await db.insert(products).values({ ...productInput, tag: productInput.tag || null, image: productInput.image || null }).returning({ id: products.id });
+  const id = result[0].id;
   if (images?.length) await db.insert(productImages).values(images.map((image) => ({ ...image, productId: id })));
   return { id };
 }
@@ -154,8 +156,8 @@ export async function archiveProduct(id: number) {
 export async function createCategory(input: { name: string; note: string; emoji: string; sortOrder: number; isFeatured: boolean }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
-  const result = await db.insert(categories).values(input);
-  return { id: Number(result[0].insertId) };
+  const result = await db.insert(categories).values(input).returning({ id: categories.id });
+  return { id: result[0].id };
 }
 
 export async function updateCategory(id: number, input: { name: string; note: string; emoji: string; sortOrder: number; isFeatured: boolean }) {
@@ -186,16 +188,14 @@ export async function upsertClerkUser(input: { clerkUserId: string; name?: strin
     loginMethod: "clerk",
     role: input.role ?? "user",
     lastSignedIn: new Date(),
-  }).onDuplicateKeyUpdate({
-    set: {
+  }).onConflictDoUpdate({ target: users.clerkUserId, set: {
       clerkUserId: input.clerkUserId,
       name: input.name ?? null,
       email: input.email ?? null,
       loginMethod: "clerk",
       role: input.role ?? "user",
       lastSignedIn: new Date(),
-    },
-  });
+    }, });
   const result = await db.select().from(users).where(eq(users.clerkUserId, input.clerkUserId)).limit(1);
   if (!result[0]) throw new Error("Unable to create Clerk user");
   return result[0];
@@ -298,8 +298,8 @@ export async function createOrder(input: CheckoutInput, userId?: number) {
       address: input.address.trim(),
       city: input.city.trim(),
       notes: input.notes?.trim() || null,
-    });
-    const customerId = Number(customerResult[0].insertId);
+    }).returning({ id: customers.id });
+    const customerId = customerResult[0].id;
     const orderResult = await tx.insert(orders).values({
       orderNumber,
       customerId,
@@ -314,8 +314,8 @@ export async function createOrder(input: CheckoutInput, userId?: number) {
       customerPhone: input.phone.trim(),
       shippingAddress: input.address.trim(),
       shippingCity: input.city.trim(),
-    });
-    const orderId = Number(orderResult[0].insertId);
+    }).returning({ id: orders.id });
+    const orderId = orderResult[0].id;
     await tx.insert(orderItems).values(totals.items.map((item) => ({
       orderId,
       productId: item.productId,
@@ -328,8 +328,8 @@ export async function createOrder(input: CheckoutInput, userId?: number) {
       const stockUpdate = await tx.update(products).set({
         stockQuantity: sql`${products.stockQuantity} - ${item.quantity}`,
         updatedAt: new Date(),
-      }).where(and(eq(products.id, item.productId), gte(products.stockQuantity, item.quantity)));
-      if (Number(stockUpdate[0].affectedRows) !== 1) throw new Error("المخزون تغير أثناء إتمام الطلب، يرجى المحاولة مجدداً");
+      }).where(and(eq(products.id, item.productId), gte(products.stockQuantity, item.quantity))).returning({ id: products.id });
+      if (stockUpdate.length !== 1) throw new Error("المخزون تغير أثناء إتمام الطلب، يرجى المحاولة مجدداً");
     }
     return { orderId, orderNumber, ...totals, paymentStatus: "pending" as const };
   });
@@ -362,15 +362,15 @@ export async function createPendingOrder(input: CheckoutInput, userId?: number) 
       userId, name: input.name.trim(), email: input.email.trim().toLowerCase(),
       phone: input.phone.trim(), address: input.address.trim(), city: input.city.trim(),
       notes: input.notes?.trim() || null,
-    });
-    const customerId = Number(customerResult[0].insertId);
+    }).returning({ id: customers.id });
+    const customerId = customerResult[0].id;
     const orderResult = await tx.insert(orders).values({
       orderNumber, customerId, status: "pending", paymentStatus: "pending", currency: "JOD",
       subtotal: totals.subtotal.toFixed(2), shippingFee: totals.shippingFee.toFixed(2), total: totals.total.toFixed(2),
       customerName: input.name.trim(), customerEmail: input.email.trim().toLowerCase(), customerPhone: input.phone.trim(),
       shippingAddress: input.address.trim(), shippingCity: input.city.trim(),
-    });
-    const orderId = Number(orderResult[0].insertId);
+    }).returning({ id: orders.id });
+    const orderId = orderResult[0].id;
     await tx.insert(orderItems).values(totals.items.map((item) => ({
       orderId, productId: item.productId, productName: item.productName, quantity: item.quantity,
       unitPrice: item.unitPrice.toFixed(2), lineTotal: item.lineTotal.toFixed(2),
@@ -384,8 +384,8 @@ export async function createPaymentAttempt(input: { orderId: number; amount: num
   if (!db) throw new Error("Database is not configured");
   const result = await db.insert(payments).values({
     orderId: input.orderId, provider: "hyperpay", amount: input.amount.toFixed(2), currency: input.currency, status: "created",
-  });
-  return { paymentId: Number(result[0].insertId) };
+  }).returning({ id: payments.id });
+  return { paymentId: result[0].id };
 }
 
 export async function updatePaymentCheckout(input: { paymentId: number; checkoutId: string }) {
