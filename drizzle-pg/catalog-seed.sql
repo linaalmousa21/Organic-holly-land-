@@ -9,12 +9,7 @@ INSERT INTO "categories" ("id", "name", "note", "emoji", "sortOrder", "isFeature
   (4, 'الألبان', 'طازجة من مزارعنا', '🥣', 4, TRUE),
   (5, 'مؤونة البيت', 'أصناف تشبه البيت', '🍃', 5, FALSE),
   (6, 'موسمنا', 'اختيارات الموسم', '✨', 6, FALSE)
-ON CONFLICT ("id") DO UPDATE SET
-  "name" = EXCLUDED."name",
-  "note" = EXCLUDED."note",
-  "emoji" = EXCLUDED."emoji",
-  "sortOrder" = EXCLUDED."sortOrder",
-  "isFeatured" = EXCLUDED."isFeatured";
+ON CONFLICT ("id") DO NOTHING;
 
 INSERT INTO "products" (
   "id", "categoryId", "name", "subtitle", "price", "unitLabel", "tag", "image",
@@ -26,21 +21,7 @@ INSERT INTO "products" (
   (4, 5, 'ورق عنب بلدي', 'محفوظ بماء وملح، جاهز لطبخة البيت', 4.75, '700 غ', NULL, NULL, 'grape-art', '🍃', 20, 5, 4, TRUE),
   (5, 4, 'لبنة بالزعتر', 'لبن بلدي كثيف مع رشة من زعترنا', 3.25, '400 غ', 'طازج', NULL, 'labneh-art', '🥣', 20, 5, 5, TRUE),
   (6, 5, 'دبس رمان أصلي', 'مركز من رمان الموسم، حامض ومتوازن', 5.00, '330 مل', NULL, NULL, 'pomegranate-art', '❤️', 20, 5, 6, TRUE)
-ON CONFLICT ("id") DO UPDATE SET
-  "categoryId" = EXCLUDED."categoryId",
-  "name" = EXCLUDED."name",
-  "subtitle" = EXCLUDED."subtitle",
-  "price" = EXCLUDED."price",
-  "unitLabel" = EXCLUDED."unitLabel",
-  "tag" = EXCLUDED."tag",
-  "image" = EXCLUDED."image",
-  "art" = EXCLUDED."art",
-  "emoji" = EXCLUDED."emoji",
-  "stockQuantity" = EXCLUDED."stockQuantity",
-  "lowStockThreshold" = EXCLUDED."lowStockThreshold",
-  "sortOrder" = EXCLUDED."sortOrder",
-  "isActive" = EXCLUDED."isActive",
-  "updatedAt" = NOW();
+ON CONFLICT ("id") DO NOTHING;
 
 SELECT setval(pg_get_serial_sequence('"categories"', 'id'), GREATEST((SELECT COALESCE(MAX("id"), 1) FROM "categories"), 1), TRUE);
 SELECT setval(pg_get_serial_sequence('"products"', 'id'), GREATEST((SELECT COALESCE(MAX("id"), 1) FROM "products"), 1), TRUE);
